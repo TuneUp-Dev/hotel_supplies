@@ -107,7 +107,6 @@ html {
 
 /* Scroll Bar Style */
 
-/* Webkit Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -121,7 +120,7 @@ html {
   background: #000000;
   border-radius: 10px;
 }
-/* Firefox */
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #000000 #ffffff;
