@@ -1,0 +1,128 @@
+/* Font package Imports */
+@import url("https://fonts.googleapis.com/css2?family=Agbalumo&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Outfit:wght@100..900&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Poltawski+Nowy:ital,wght@0,400..700;1,400..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Romanesco&family=Rouge+Script&display=swap");
+
+@font-face {
+  font-family: "IntegralCF";
+  src: url("/src/fonts/Integralcf.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/src/fonts/Satoshi-Variable.ttf") format("truetype");
+}
+
+/* Class names for fonts */
+.satoshi {
+  font-family: "Satoshi", sans-serif;
+}
+
+.integral {
+  font-family: "IntegralCF", sans-serif;
+}
+
+/* Fonts Initialization */
+
+.agbalumo {
+  font-family: "Agbalumo", system-ui;
+  font-style: normal;
+}
+
+.inter {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.outfit {
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.playfair {
+  font-family: "Playfair", serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+.lato {
+  font-family: "Lato", sans-serif;
+  font-style: normal;
+}
+
+.romanesco {
+  font-family: "Romanesco", cursive;
+  font-style: normal;
+}
+
+.rouge {
+  font-family: "Rouge Script", cursive;
+  font-style: normal;
+}
+
+.barlow {
+  font-family: "Barlow", sans-serif;
+  font-style: normal;
+}
+
+.poltawski {
+  font-family: "Poltawski Nowy", serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.roboto {
+  font-family: "Roboto", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+/* Tailwind Configuration */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic Styles */
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-regular-smoothing: antialiased;
+  -moz-osx-regular-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scroll Bar Style */
+
+/* Webkit Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000000;
+  border-radius: 10px;
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #000000 #ffffff;
+}

@@ -1,0 +1,167 @@
+import { Button } from "@heroui/button";
+import Arrow from "../assets/arrow_right.svg";
+import ArrowTop from "../assets/arrow_top_right.svg";
+import Product1 from "../assets/product1.png";
+import Product2 from "../assets/product2.png";
+import Product3 from "../assets/product3.png";
+import Product4 from "../assets/product4.png";
+import Product5 from "../assets/product5.png";
+
+// Product Data
+const products = [
+  {
+    id: 1,
+    image: Product1,
+    title: "Premium Hospitality Linen & Equipment",
+    features: [
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+    ],
+  },
+  {
+    id: 2,
+    image: Product2,
+    title: "Premium Hospitality Linen & Equipment",
+    features: [
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+    ],
+  },
+  {
+    id: 3,
+    image: Product3,
+    title: "Premium Hospitality Linen & Equipment",
+    features: [
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+    ],
+  },
+  {
+    id: 4,
+    image: Product4,
+    title: "Premium Hospitality Linen & Equipment",
+    features: [
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+    ],
+  },
+  {
+    id: 5,
+    image: Product5,
+    title: "Premium Hospitality Linen & Equipment",
+    features: [
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+      "Bedroom Linen",
+    ],
+  },
+];
+
+const OurProducts = () => {
+  return (
+    <>
+      <div
+        id="products"
+        className="w-full xl:w-[1280px] mx-auto flex flex-col justify-center items-center gap-y-4 lg:mt-20 xl:mt-32"
+      >
+        {/* Section Title */}
+        <h1 className="outfit font-medium text-[39px] text-black text-center">
+          Our Products Range
+        </h1>
+        <p className="text-[16px] satoshi text-black/60 w-[550px] text-center">
+          Browse through our extensive range of high-quality hotel supplies,
+          designed to enhance guest comfort and elevate hospitality experiences.
+        </p>
+
+        {/* Product Cards */}
+        <div className="mt-8 w-full flex flex-wrap justify-center lg:gap-8 xl:gap-28">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="relative lg:w-[300px] lg:h-[450px] xl:w-[350px] xl:h-[535px] overflow-hidden rounded-[12px] rounded-br-[60px] rounded-bl-[60px] flex flex-col justify-start items-start gap-y-3 bg-white"
+              style={{
+                position: "relative",
+                padding: "1px",
+                borderRadius: "12px 12px 60px 60px",
+                background: "linear-gradient(195deg, white, white, #666666)",
+              }}
+            >
+              {/* Inner Container */}
+              <div
+                className="w-full h-full rounded-[12px] rounded-br-[60px] rounded-bl-[60px] overflow-hidden bg-white"
+                style={{
+                  position: "relative",
+                }}
+              >
+                {/* Product Image */}
+                <div
+                  className="w-full overflow-hidden"
+                  style={{
+                    position: "absolute",
+                    zIndex: 0,
+                  }}
+                >
+                  <img src={product.image} alt={product.title} />
+                </div>
+
+                {/* Product Details */}
+                <div
+                  className="absolute bottom-0 w-full lg:min-h-[260px] lg:max-h-[260px] xl:min-h-[320px] xl:max-h-[320px] lg:p-6 xl:p-8 lg:pt-4 xl:pt-6 lg:pb-2 xl:pb-4 bg-white lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] xl:rounded-tr-[60px] xl:rounded-br-[60px] xl:rounded-bl-[60px] flex flex-col justify-start items-start lg:gap-y-3 xl:gap-y-4"
+                  style={{
+                    zIndex: 1,
+                  }}
+                >
+                  <h1 className="playfair font-medium lg:text-[20px] xl:text-[22px] leading-[112%]">
+                    {product.title}
+                  </h1>
+                  <ul className="flex flex-col justify-start items-start lg:gap-y-2 xl:gap-y-3">
+                    {product.features.map((feature, index) => (
+                      <li
+                        key={index}
+                        className="w-full lato lg:text-[14px] xl:text-[16px] flex justify-start items-center lg:gap-x-1 xl:gap-x-1.5"
+                      >
+                        {feature}{" "}
+                        <img
+                          src={Arrow}
+                          className="lg:w-[11px] xl:w-[12px]"
+                          alt=""
+                        />
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* View Details Button */}
+                  <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 w-[105px] md:w-[140px] lg:w-[150px] xl:w-[176px]">
+                    <Button className="outfit font-normal text-[10px] md:text-[12px] lg:text-[13px] xl:text-[16px] border-[0.9px] bg-white border-black text-black rounded-[44px] min-w-[80px] max-h-[30px] md:min-h-[35px] lg:min-w-[110px] xl:min-w-[140px] lg:min-h-[40px] xl:min-h-[50px] overflow-hidden">
+                      View Details
+                    </Button>
+
+                    {/* Arrow Container */}
+                    <span className="bg-[#003F2E] absolute top-0 right-0 md:right-2.5 lg:right-3 xl:right-1 rounded-full w-[30px] md:w-[35px] lg:w-[40px] xl:w-[50px] h-[30px] md:h-[35px] lg:h-[40px] xl:h-[50px] flex justify-center items-center overflow-visible">
+                      <img
+                        src={ArrowTop}
+                        className="w-[18px] md:w-[24px] lg:w-[30px]"
+                        alt="Arrow"
+                      />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default OurProducts;
