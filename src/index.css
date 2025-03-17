@@ -125,3 +125,31 @@ html {
   scrollbar-width: thin;
   scrollbar-color: #000000 #ffffff;
 }
+
+/* Testimonials */
+
+@media screen and (max-width: 390px) {
+  .blur_border {
+    max-width: 20px;
+  }
+}
+
+@media screen and (max-width: 345px) {
+  .blur_border {
+    max-width: 13px;
+  }
+}
+
+@media screen and (max-width: 325px) {
+  .blur_border {
+    max-width: 10px;
+  }
+}
+
+/* Hero Component */
+
+@media screen and (max-width: 340px) {
+  .pop_images {
+    opacity: 0;
+  }
+}

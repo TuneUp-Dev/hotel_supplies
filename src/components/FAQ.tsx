@@ -43,12 +43,12 @@ const FAQ = () => {
 
   return (
     <>
-      <div className="w-full xl:max-w-[1440px] mx-auto mt-12">
-        <h1 className="text-center lg:text-[46px] xl:text-[56px] font-extrabold">
+      <div className="w-full xl:max-w-[1440px] mx-auto mt-5 md:mt-9 lg:mt-10 xl:mt-12">
+        <h1 className="text-center text-[25px] md:text-[32px] lg:text-[46px] xl:text-[56px] font-extrabold leading-7 md:leading-none">
           Frequently asked questions
         </h1>
 
-        <div className="px-20 lg:mt-12 xl:mt-16">
+        <div className="px-6 md:px-12 lg:px-20 mt-4 md:mt-8 lg:mt-12 xl:mt-16">
           {faqs.map((faq, index) => (
             <div
               key={index}
@@ -57,14 +57,14 @@ const FAQ = () => {
               }`}
             >
               <button
-                className="w-full flex justify-between items-center py-5 text-left roboto text-[24px] font-[370] focus:outline-none"
+                className="w-full flex justify-between items-center py-4 md:py-3.5 lg:py-5 text-left roboto text-[14px] md:text-[18px] lg:text-[22px] xl:text-[24px] font-[370] focus:outline-none"
                 onClick={() => toggleFAQ(index)}
               >
                 {faq.question}
                 <img
                   src={Arrow}
                   alt=""
-                  className={`transition-transform duration-300 ${
+                  className={`transition-transform duration-300 w-[16px] md:w-[18px] lg:w-[21px] xl:w-[24px] ${
                     openIndex === index ? "rotate-180" : ""
                   }`}
                 />
@@ -73,11 +73,13 @@ const FAQ = () => {
               <div
                 className={`overflow-hidden transition-all duration-300 bg-white ${
                   openIndex === index
-                    ? "max-h-40 opacity-100 py-5"
+                    ? "max-h-40 opacity-100 py-4 md:py-3 lg:py-5"
                     : "max-h-0 opacity-0"
                 }`}
               >
-                <p className="roboto font-[370] text-gray-500">{faq.answer}</p>
+                <p className="roboto text-[11px] md:text-[14px] lg:text-[15px] xl:text-[16px] font-[370] text-gray-500">
+                  {faq.answer}
+                </p>
               </div>
             </div>
           ))}

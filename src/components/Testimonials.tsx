@@ -101,25 +101,25 @@ const Testimonials = () => {
     <>
       <div
         id="testimonials"
-        className="mt-20 text-center relative md:max-w-[90vw] xl:max-w-[1440px] mx-auto"
+        className="mt-14 md:mt-16 lg:mt-20 xl:mt-24 text-center relative md:max-w-[90vw] xl:max-w-[1440px] mx-auto"
       >
-        <div className="flex justify-between items-center lg:px-0 xl:px-24">
-          <p className="integral font-extrabold lg:text-[36px] xl:text-[48px] md:text-[36px] text-black text-start">
+        <div className="flex justify-between items-end md:items-center px-6 lg:px-0 xl:px-24">
+          <p className="integral font-black md:font-extrabold text-[25px] md:text-[30px] lg:text-[36px] xl:text-[48px] leading-7 md:leading-none text-black text-start">
             OUR HAPPY CUSTOMERS
           </p>
 
           {/* Arrow Buttons */}
-          <div className="flex justify-end items-center gap-x-2.5">
+          <div className="flex justify-end items-center gap-x-2.5 mb-1 md:mb-0">
             <button onClick={handlePrevious}>
               <img
-                className="lg:w-[20px] xl:w-[24px]"
+                className="w-[30px] md:w-[20px] xl:w-[24px]"
                 src={ArrowLeft}
                 alt="Previous"
               />
             </button>
             <button onClick={handleNext}>
               <img
-                className="lg:w-[20px] xl:w-[24px]"
+                className="w-[30px] md:w-[20px] xl:w-[24px]"
                 src={ArrowRight}
                 alt="Next"
               />
@@ -128,32 +128,32 @@ const Testimonials = () => {
         </div>
 
         {/* Shadow Wrapper */}
-        <div className="relative lg:-mt-4 xl:mt-1">
+        <div className="relative md:mt-0 overflow-hidden">
           {/* Left Faded Blur */}
-          <div className="absolute inset-y-0 left-0 w-20 max-w-20 bg-gradient-to-r from-white/20 to-transparent backdrop-blur-[1px] z-50 pointer-events-none"></div>
+          <div className="blur_border absolute inset-y-0 left-0 w-9 md:max-w-10 lg:w-20 lg:max-w-20 bg-gradient-to-r from-white/20 to-transparent backdrop-blur-[1px] z-50 pointer-events-none"></div>
 
           {/* Slider Container */}
-          <div className="mx-auto w-full py-4 z-40 relative">
+          <div className="mx-auto w-full md:py-0 z-40 relative h-[180px] md:h-auto">
             <Slider ref={sliderRef} {...settings}>
               {testimonial.map((testimonial) => {
                 return (
-                  <div key={testimonial.id} className="py-10 pr-4">
-                    <div className="w-[300px] lg:w-[350px] xl:w-[400px] lg:h-[200px] xl:h-[240px] cursor-grab rounded-[20px] flex flex-col justify-start items-start lg:p-4 xl:p-6 border-[1px] border-black/10 text-white hover:shadow-sm hover:scale-[1.005] ml-[5px] snap-center transform transition-all ease-linear duration-100">
+                  <div key={testimonial.id} className="py-4 pr-4">
+                    <div className="w-[300px] lg:w-[350px] xl:w-[400px] h-[150px] md:h-[160px] lg:h-[200px] xl:h-[240px] cursor-grab rounded-[20px] flex flex-col justify-start items-start p-3 md:p-4 xl:p-6 border-[1px] border-black/10 text-white hover:shadow-sm hover:scale-[1.005] ml-[12.3px] md:ml-[5px] snap-center transform transition-all ease-linear duration-100">
                       <div className="w-full flex justify-start items-start">
-                        <h1 className="lg:text-[18px] xl:text-[22px] text-[#FFC633]">
+                        <h1 className="text-[15px] md:text-[16px] lg:text-[18px] xl:text-[22px] text-[#FFC633]">
                           {renderRating(testimonial.rating)}
                         </h1>
                       </div>
-                      <div className="lg:pt-1 xl:pt-1.5">
-                        <h1 className="text-start lg:text-[16px] xl:text-[20px] text-black satoshi font-bold flex justify-start items-center gap-x-0.5">
+                      <div className="md:pt-0.5 lg:pt-1 xl:pt-1.5">
+                        <h1 className="text-start text-[13px] md:text-[14px] lg:text-[16px] xl:text-[20px] text-black satoshi font-bold flex justify-start items-center gap-x-0.5">
                           {testimonial.name}
                           <img
-                            className="lg:w-[20px] xl:w-[24px]"
+                            className="w-[16px] md:w-[18px] lg:w-[20px] xl:w-[24px]"
                             src={Tick}
                             alt=""
                           />
                         </h1>
-                        <p className="mt-2 text-[13px] lg:text-[14px] xl:text-[16px] text-black/60 satoshi font-light lg:leading-[20px] xl:leading-[22px] work-sans-light text-start">
+                        <p className="mt-1 md:mt-2 text-[12px] md:text-[12px] lg:text-[14px] xl:text-[16px] text-black/60 satoshi font-light lg:leading-[20px] xl:leading-[22px] work-sans-light text-start">
                           {testimonial.description}
                         </p>
                       </div>
@@ -165,7 +165,7 @@ const Testimonials = () => {
           </div>
 
           {/* Right Faded Blur */}
-          <div className="absolute inset-y-0 right-0 w-20 max-w-20 bg-gradient-to-l from-white/20 to-transparent backdrop-blur-[1px] z-50 pointer-events-none"></div>
+          <div className="blur_border absolute inset-y-0 right-0 w-9 md:max-w-10 lg:w-20 lg:max-w-20 bg-gradient-to-l from-white/20 to-transparent backdrop-blur-[1px] z-50 pointer-events-none"></div>
         </div>
       </div>
     </>
