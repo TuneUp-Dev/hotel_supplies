@@ -1,11 +1,11 @@
 import { Button } from "@heroui/button";
-import Arrow from "../assets/arrow_right.svg";
-import ArrowTop from "../assets/arrow_top_right.svg";
-import Product1 from "../assets/product1.png";
-import Product2 from "../assets/product2.png";
-import Product3 from "../assets/product3.png";
-import Product4 from "../assets/product4.png";
-import Product5 from "../assets/product5.png";
+import Arrow from "../../assets/arrow_right.svg";
+import ArrowTop from "../../assets/arrow_top_right.svg";
+import Product1 from "../../assets/product1.png";
+import Product2 from "../../assets/product2.png";
+import Product3 from "../../assets/product3.png";
+import Product4 from "../../assets/product4.png";
+import Product5 from "../../assets/product5.png";
 
 // Product Data
 const products = [

@@ -2,9 +2,9 @@ import React, { useState, useRef } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import Tick from "../assets/tick.svg";
-import ArrowLeft from "../assets/arrow_left.svg";
-import ArrowRight from "../assets/arrow_right3.svg";
+import Tick from "../../assets/tick.svg";
+import ArrowLeft from "../../assets/arrow_left.svg";
+import ArrowRight from "../../assets/arrow_right3.svg";
 
 interface Testimonial {
   id: number;

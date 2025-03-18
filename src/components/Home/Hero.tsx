@@ -1,10 +1,10 @@
 import { Button } from "@heroui/button";
-import Hero1 from "../assets/hero1.svg";
-import Hero2 from "../assets/hero2.svg";
-import Hero3 from "../assets/hero3.svg";
-import Hero4 from "../assets/hero4.svg";
-import Hero5 from "../assets/hero5.svg";
-import Hero6 from "../assets/hero6.svg";
+import Hero1 from "../../assets/hero1.svg";
+import Hero2 from "../../assets/hero2.svg";
+import Hero3 from "../../assets/hero3.svg";
+import Hero4 from "../../assets/hero4.svg";
+import Hero5 from "../../assets/hero5.svg";
+import Hero6 from "../../assets/hero6.svg";
 
 const Hero = () => {
   return (

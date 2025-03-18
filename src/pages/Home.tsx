@@ -1,9 +1,9 @@
 import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import OurProducts from "../components/OurProducts";
-import Blog from "../components/Blog";
-import Testimonials from "../components/Testimonials";
-import FAQ from "../components/FAQ";
+import Hero from "../components/Home/Hero";
+import OurProducts from "../components/Home/OurProducts";
+import Blog from "../components/Home/Blog";
+import Testimonials from "../components/Home/Testimonials";
+import FAQ from "../components/Home/FAQ";
 import NewsLetter from "../components/NewsLetter";
 import Footer from "../components/Footer";
 

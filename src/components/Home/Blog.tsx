@@ -1,9 +1,9 @@
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import ArrowRight from "../assets/arrow_right2.svg";
-import Blog1 from "../assets/blog1.png";
-import Blog2 from "../assets/blog2.png";
-import Blog3 from "../assets/blog3.png";
+import ArrowRight from "../../assets/arrow_right2.svg";
+import Blog1 from "../../assets/blog1.png";
+import Blog2 from "../../assets/blog2.png";
+import Blog3 from "../../assets/blog3.png";
 import { Button, Link } from "@heroui/react";
 
 const blog = [

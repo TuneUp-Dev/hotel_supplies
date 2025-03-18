@@ -8,7 +8,7 @@ import Minus from "../../assets/minus.svg";
 import Plus from "../../assets/plus.svg";
 import { Button } from "@heroui/button";
 
-const CartMain = () => {
+const Hero = () => {
   // Dummy cartMain data
   const cartMainItems = [
     { id: 1, name: "Bed Sheet", size: "Large", color: "White" },
@@ -64,7 +64,7 @@ const CartMain = () => {
           <BreadcrumbItem href="/cart">Cart</BreadcrumbItem>
         </Breadcrumbs>
         <div className="w-full flex flex-col lg:flex-row gap-x-10 gap-y-4">
-          {/* CartMain Items Section */}
+          {/* Main Items Section */}
           <div className="flex-1">
             <h2 className="text-[40px] agbalumo font-normal mb-4 md:mb-6 -mt-4 md:mt-0">
               Your cart
@@ -175,4 +175,4 @@ const CartMain = () => {
   );
 };
 
-export default CartMain;
+export default Hero;

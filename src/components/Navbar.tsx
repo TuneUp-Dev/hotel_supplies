@@ -24,6 +24,13 @@ const Navbar = () => {
     };
   }, [isMobileMenuOpen]);
 
+  const scrollToSection = (id: any) => {
+    const section = document.getElementById(id);
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <>
       <div className="xl:w-[1280px] mx-auto flex justify-between items-center w-full mt-6 md:mt-8 lg:mt-10 px-4 md:px-8 lg:px-12 xl:px-16">
@@ -57,19 +64,23 @@ const Navbar = () => {
         {/* Desktop Menu */}
         <ul className="hidden md:flex list-none inter-light justify-between items-center md:gap-x-[20px] lg:gap-x-[30px] xl:gap-x-[50px] md:text-[12px] lg:text-[14px] xl:text-[16px]">
           <li>
-            <a href="#home">Home</a>
+            <button onClick={() => scrollToSection("home")}>Home</button>
           </li>
           <li>
-            <a href="#products">Products</a>
+            <button onClick={() => scrollToSection("products")}>
+              Products
+            </button>
           </li>
           <li>
-            <a href="#testimonials">Testimonial</a>
+            <button onClick={() => scrollToSection("testimonials")}>
+              Testimonial
+            </button>
           </li>
           <li>
-            <a href="#blog">Blog</a>
+            <button onClick={() => scrollToSection("blog")}>Blog</button>
           </li>
           <li>
-            <a href="#contact">Contact</a>
+            <button onClick={() => scrollToSection("contact")}>Contact</button>
           </li>
         </ul>
 
@@ -107,34 +118,25 @@ const Navbar = () => {
             {/* Menu Items */}
             <ul className="list-none inter-light text-left space-y-6 mt-12">
               <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#home" onClick={toggleMobileMenu}>
-                  Home
-                </a>
+                <button onClick={() => scrollToSection("home")}>Home</button>
               </li>
               <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#about-us" onClick={toggleMobileMenu}>
-                  About Us
-                </a>
-              </li>
-              <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#products" onClick={toggleMobileMenu}>
+                <button onClick={() => scrollToSection("products")}>
                   Products
-                </a>
+                </button>
               </li>
               <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#testimonial" onClick={toggleMobileMenu}>
+                <button onClick={() => scrollToSection("testimonials")}>
                   Testimonial
-                </a>
+                </button>
               </li>
               <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#blog" onClick={toggleMobileMenu}>
-                  Blog
-                </a>
+                <button onClick={() => scrollToSection("blog")}>Blog</button>
               </li>
               <li className="text-[14px] md:text-[15px] hover:text-black transition-colors duration-200">
-                <a href="#contact" onClick={toggleMobileMenu}>
+                <button onClick={() => scrollToSection("contact")}>
                   Contact
-                </a>
+                </button>
               </li>
             </ul>
 
