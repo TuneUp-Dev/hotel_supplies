@@ -112,7 +112,7 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #ffffff;
+  background: transparent;
   border-radius: 10px;
 }
 
@@ -123,7 +123,7 @@ html {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #000000 #ffffff;
+  scrollbar-color: #000000 transparent;
 }
 
 /* Testimonials */

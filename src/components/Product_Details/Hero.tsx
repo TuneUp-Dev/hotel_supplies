@@ -1,21 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Breadcrumbs, BreadcrumbItem, Button } from "@heroui/react";
 import Tick from "../../assets/tick2.svg";
 import Minus from "../../assets/minus.svg";
 import Plus from "../../assets/plus.svg";
+import Cart from "../../assets/cart.svg";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl?: string;
+  availableColors: string[];
+  availableSizes: string[];
+  orderCount: string;
+  totalOrderCount: string;
+  productImages: string[];
+}
+
+interface ProductGroup {
+  id: string;
+  name: string;
+  products: Product[];
+}
 
 const Hero = () => {
-  const currentOrders = 480;
-  const totalOrders = 1000;
-  const percentage = (currentOrders / totalOrders) * 100;
+  const [productData, setProductData] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-
-  const colors = ["#4F4631", "#314F4A", "#31344F"];
-  const sizes = ["Small", "Medium", "Large"];
+  const [quantity, setQuantity] = useState<number>(1);
+  const navigate = useNavigate();
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    console.log(windowWidth);
+  });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -23,58 +47,215 @@ const Hero = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const truncateText = (text: string, maxLength: number) => {
-    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  const location = useLocation();
+
+  // Function to format text like breadcrumb text
+  const toCamelCase = (text: string) => {
+    return text
+      .replace(/--/g, " & ") // Replace double hyphens with a slash
+      .replace(/-/g, " ") // Replace single hyphens with spaces
+      .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize the first letter of each word
   };
 
-  const getMaxLength = () => {
-    if (windowWidth < 640) return 5;
-    if (windowWidth < 1024) return 20;
-    return 50;
+  const fetchProduct = useCallback(async () => {
+    try {
+      const paths = location.pathname.split("/").filter((path) => path !== "");
+      const [category, subcategory, product, productId] = paths;
+
+      const endpoint = `http://localhost:5003/api/products/${category}/${subcategory}/${product}`;
+      console.log("Fetching product from:", endpoint);
+
+      const response = await axios.get<ProductGroup>(endpoint);
+      const productGroup = response.data;
+
+      // Log the fetched product group
+      console.log("Fetched product group:", productGroup);
+
+      // Find the specific product in the products array
+      const specificProduct = productGroup.products.find(
+        (p) => p.id === productId
+      );
+
+      if (!specificProduct) {
+        throw new Error("Product not found");
+      }
+
+      // Set the specific product data to state
+      setProductData(specificProduct);
+      console.log("Fetched specific product:", specificProduct);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      setProductData(null); // Reset product data if not found
+    } finally {
+      setIsLoading(false);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [location.pathname, fetchProduct]);
+
+  // Handle increase quantity
+  const handleIncreaseQuantity = () => {
+    setQuantity((prevQuantity) => prevQuantity + 1);
+  };
+
+  // Handle decrease quantity
+  const handleDecreaseQuantity = () => {
+    setQuantity((prevQuantity) => (prevQuantity > 1 ? prevQuantity - 1 : 1));
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!productData) {
+    return <div>Product not found</div>;
+  }
+
+  // Calculate order progress percentage
+  const percentage =
+    (parseInt(productData.orderCount) / parseInt(productData.totalOrderCount)) *
+    100;
+
+  const generateBreadcrumbPaths = () => {
+    const paths = location.pathname.split("/").filter((path) => path !== "");
+    const breadcrumbs = [];
+
+    // Add "Home" as the first breadcrumb
+    breadcrumbs.push({
+      label: "Home",
+      href: "/",
+    });
+
+    let currentPath = "";
+    for (let i = 0; i < paths.length; i++) {
+      currentPath += `/${paths[i]}`;
+      breadcrumbs.push({
+        label: toCamelCase(paths[i]),
+        href: currentPath,
+      });
+    }
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbPaths();
+
+  const isLightColor = (color: string): boolean => {
+    // Convert hex color to RGB
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return true if the color is light
+    return luminance > 0.5;
+  };
+
+  const handleAddToCart = () => {
+    if (!productData || !selectedColor || !selectedSize) {
+      alert("Please select color and size before adding to cart.");
+      return;
+    }
+
+    const cartItem = {
+      id: productData.id,
+      name: productData.name,
+      description: productData.description,
+      price: productData.price,
+      imageUrl: productData.imageUrl,
+      color: selectedColor,
+      size: selectedSize,
+      quantity: quantity,
+    };
+
+    // Retrieve existing cart items from localStorage
+    const existingCartItems = JSON.parse(
+      localStorage.getItem("cartItems") || "[]"
+    );
+
+    // Add the new item to the cart
+    const updatedCartItems = [...existingCartItems, cartItem];
+
+    // Save the updated cart items back to localStorage
+    localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
+
+    // Navigate to the cart page
+    navigate("/cart");
   };
 
   return (
     <div className="px-4 sm:px-10 md:px-16 lg:px-20 py-6 md:py-10">
       {/* Breadcrumbs */}
-      <Breadcrumbs size="md" className="my-4 md:my-6 whitespace-nowrap">
-        <BreadcrumbItem href="/">Home</BreadcrumbItem>
-        <BreadcrumbItem href="/">
-          {truncateText(
-            "Premium Hospitality Linen & Equipment",
-            getMaxLength()
-          )}
-        </BreadcrumbItem>
-        <BreadcrumbItem href="/">
-          {truncateText("Bedroom Linen", getMaxLength())}
-        </BreadcrumbItem>
-        <BreadcrumbItem href="/">
-          {truncateText("Mattress Protector", getMaxLength())}
-        </BreadcrumbItem>
-      </Breadcrumbs>
+      <div className="flex justify-between items-center">
+        <Breadcrumbs size={"md"} className="my-6">
+          {breadcrumbs.map((breadcrumb, index) => {
+            const isLast = index === breadcrumbs.length - 1;
+            return (
+              <BreadcrumbItem key={index} href={breadcrumb.href}>
+                {isLast ? (
+                  <p className="font-semibold">{breadcrumb.label}</p>
+                ) : (
+                  breadcrumb.label
+                )}
+              </BreadcrumbItem>
+            );
+          })}
+        </Breadcrumbs>
+
+        <Button className="bg-black text-white">
+          <img
+            src={Cart}
+            className="w-5 invert brightness-0 contrast-200"
+            alt=""
+          />
+          View Cart
+        </Button>
+      </div>
 
       {/* Main Section */}
       <div className="w-full flex flex-wrap lg:flex-nowrap justify-between items-start gap-y-10 md:gap-y-16 gap-x-6 lg:gap-10 mt-6 sm:mt-8 lg:mt-10 xl:mt-12">
         {/* Image Section */}
         <div className="flex flex-col-reverse sm:flex-row justify-between items-center w-full lg:w-auto xl:min-w-[600px] h-[430px] sm:h-[300px] md:h-[450px] lg:h-[530px] gap-3">
           <div className="w-full h-full flex sm:flex-col justify-between items-center gap-3">
-            <div className="w-full h-full bg-white md:bg-white rounded-2xl border border-black"></div>
-            <div className="w-full h-full bg-[#F0F0F0] md:bg-white rounded-2xl"></div>
-            <div className="w-full h-full bg-[#F0F0F0] md:bg-white rounded-2xl"></div>
+            {productData.productImages.map((image, index) => (
+              <div
+                key={index}
+                className="w-full h-full bg-white md:bg-white rounded-2xl border-[1px] border-transparent hover:border-black transition-all duration-200 ease-linear"
+                style={{
+                  backgroundImage: `url(${image})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              ></div>
+            ))}
           </div>
-          <div className="w-full sm:min-w-[380px] md:min-w-[420px] lg:min-w-[370px] xl:min-w-[440px] min-h-[300px] sm:h-full bg-white md:bg-white shadow-[0px_0px_4px_rgba(0,0,0,0.25)] md:shadow-none rounded-2xl"></div>
+          <div
+            className="w-full sm:min-w-[380px] md:min-w-[420px] lg:min-w-[370px] xl:min-w-[440px] min-h-[300px] sm:h-full bg-white md:bg-white border-[1px] border-transparent hover:border-black transition-all duration-200 ease-linear shadow-[0px_0px_4px_rgba(0,0,0,0.25)] md:shadow-none rounded-2xl"
+            style={{
+              backgroundImage: `url(${productData.imageUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          ></div>
         </div>
 
         {/* Product Details */}
         <div className="w-full h-[480px] md:h-[430px] lg:h-[530px] lg:w-auto flex flex-col justify-between items-start">
           <div className="w-full h-full">
             <h2 className="text-2xl md:text-3xl lg:text-[35px] xl:text-[40px] agbalumo font-normal">
-              Mattress Protector
+              {productData.name}
             </h2>
 
             {/* Order Progress */}
             <div className="w-full max-w-[240px] mt-2.5 lg:mt-4">
               <div className="text-start text-[14px] sm:text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px]">
-                {currentOrders}/{totalOrders} Orders Count
+                {productData.orderCount}/{productData.totalOrderCount} Orders
+                Count
               </div>
               <div className="w-full h-[6px] bg-[#F0F0F0] md:bg-white rounded-full relative overflow-hidden mt-2">
                 <div
@@ -86,10 +267,7 @@ const Hero = () => {
 
             {/* Description */}
             <p className="font-light text-[14px] sm:text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px] text-black/60 mt-3">
-              This mattress protector is perfect for any setting, offering
-              enhanced comfort and durability. Crafted from soft, breathable
-              fabric, it provides superior protection while maintaining a cozy
-              and luxurious feel.
+              {productData.description}
             </p>
 
             {/* Color Selection */}
@@ -98,16 +276,23 @@ const Hero = () => {
                 Select Colors
               </div>
               <div className="flex gap-2 md:gap-3">
-                {colors.map((color, index) => (
+                {productData.availableColors.map((color, index) => (
                   <span
                     key={index}
-                    className="w-[40px] h-[40px] sm:w-[25px] sm:h-[25px] md:w-[30px] md:h-[30px] lg:w-[37px] lg:h-[37px] rounded-full flex justify-center items-center cursor-pointer"
+                    className={`w-[40px] h-[40px] sm:w-[25px] sm:h-[25px] md:w-[30px] md:h-[30px] lg:w-[37px] lg:h-[37px] rounded-full flex justify-center items-center cursor-pointer 
+                      ${
+                        isLightColor(color)
+                          ? "border md:border-none"
+                          : "border-none"
+                      }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setSelectedColor(color)}
                   >
                     {selectedColor === color && (
                       <img
-                        className="w-[16px] sm:w-[12px] md:w-[14px] lg:w-[16px]"
+                        className={`w-[16px] sm:w-[12px] md:w-[14px] lg:w-[16px] ${
+                          isLightColor(color) ? "invert" : ""
+                        }`}
                         src={Tick}
                         alt="tick"
                       />
@@ -123,15 +308,15 @@ const Hero = () => {
                 Choose Size
               </div>
               <div className="flex gap-3">
-                {sizes.map((size, index) => (
+                {productData.availableSizes.map((size, index) => (
                   <Button
                     key={index}
-                    className={`w-[75px] lg:w-[86px] h-[37px] sm:h-[30px] md:h-[35px] lg:h-[48px] rounded-full flex justify-center items-center cursor-pointer transition-all duration-300 ${
+                    className={`w-[75px] lg:w-[100px] h-[37px] sm:h-[30px] md:h-[35px] lg:h-[45px] rounded-full flex justify-center items-center cursor-pointer transition-all duration-300 ${
                       selectedSize === size
                         ? "bg-black text-white"
                         : "bg-[#F0F0F0] md:bg-white text-black/60 md:first-letter:border border-gray-300"
                     }`}
-                    onClick={() => setSelectedSize(size)}
+                    onPress={() => setSelectedSize(size)}
                   >
                     <div className="text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px]">
                       {size}
@@ -146,17 +331,18 @@ const Hero = () => {
           <div className="mt-8 w-full min-h-[37px] md:min-h-[40px] xl:min-h-[52px] flex flex-nowrap justify-between items-center gap-4">
             {/* Quantity Selector */}
             <div className="w-[110px] sm:w-[140px] md:w-[170px] h-full flex justify-between items-center bg-[#F0F0F0] px-3 sm:px-5 rounded-full gap-0.5 sm:gap-2">
-              <button>
+              <button onClick={handleDecreaseQuantity}>
                 <img
                   className="min-w-[18px] sm:w-4 md:w-5"
                   src={Minus}
                   alt="minus"
                 />
               </button>
+              {/* Count */}
               <span className="px-3 text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px] font-medium">
-                1
+                {quantity}
               </span>
-              <button>
+              <button onClick={handleIncreaseQuantity}>
                 <img
                   className="min-w-[18px] sm:w-4 md:w-5"
                   src={Plus}
@@ -166,7 +352,10 @@ const Hero = () => {
             </div>
 
             {/* Add to Cart Button */}
-            <Button className="w-full h-full flex justify-center items-center text-center text-[14px] sm:text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px] sm:font-medium text-white bg-black px-5 rounded-full">
+            <Button
+              className="w-full h-full flex justify-center items-center text-center text-[14px] sm:text-[11px] md:text-[13px] lg:text-[13.5px] xl:text-[16px] sm:font-medium text-white bg-black px-5 rounded-full"
+              onPress={handleAddToCart}
+            >
               Add to Cart
             </Button>
           </div>

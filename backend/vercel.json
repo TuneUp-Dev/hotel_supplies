@@ -11,9 +11,5 @@
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ],
-  "env": {
-    "EMAIL_USER": "ecococoproduct@gmail.com",
-    "EMAIL_PASS": "dueifeuvjucatvml"
-  }
+  ]
 }
