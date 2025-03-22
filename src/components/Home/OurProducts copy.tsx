@@ -2,72 +2,71 @@ import { Button } from "@heroui/button";
 import Arrow from "../../assets/arrow_right.svg";
 import ArrowTop from "../../assets/arrow_top_right.svg";
 import { useEffect, useState } from "react";
-import { Spinner } from "@heroui/react";
-import axios from "axios";
 
 // Interface for Product Data
 interface Product {
-  id: string;
-  category: string;
-  subcategory: string;
-  name: string;
-  products: string[];
-  imageUrl: string;
-}
-
-// Interface for Category Data
-interface Category {
   id: string;
   title: string;
   imageUrl: string;
   features: string[];
 }
 
+// Function to generate dynamic links
+const generateLink = (featureName: string) => {
+  return featureName.toLowerCase().replace(/\s+/g, "-");
+};
+
 const OurProducts = () => {
-  const [products, setProducts] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch all categories and their SubCollections from the backend API
+  // Fetch all products from the server
   const fetchProducts = async () => {
-    setIsLoading(true);
     try {
-      const response = await axios.get<Product[]>(
-        "http://localhost:5003/api/products"
-      );
-      console.log("API Response:", response.data);
+      const response = await fetch("http://localhost:5003/api/products");
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const data = await response.json();
 
-      // Transform the API response into the required format
-      const transformedProducts: Category[] = response.data.reduce(
-        (acc: Category[], product: Product) => {
-          // Find or create the category in the accumulator
-          let category = acc.find((cat) => cat.title === product.category);
-          if (!category) {
-            category = {
-              id: product.category.toLowerCase().replace(/\s+/g, "-"),
-              title: product.category,
-              imageUrl: product.imageUrl || "",
-              features: [],
-            };
-            acc.push(category);
-          }
+      // Log the server response for debugging
+      console.log("Server Response:", data);
 
-          // Add the subcategory as a feature
+      // Validate the response structure
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid server response: Expected an array");
+      }
+
+      // Transform the data into the required format
+      const fetchedProducts: Product[] = data
+        .map((item: any) => {
+          // Ensure item has the required fields
           if (
-            product.subcategory &&
-            !category.features.includes(product.subcategory)
+            !item.id ||
+            !item.name ||
+            !item.imageUrl ||
+            !Array.isArray(item.subcategory)
           ) {
-            category.features.push(product.subcategory);
+            console.warn("Invalid item structure:", item);
+            return null; // Skip invalid items
           }
 
-          return acc;
-        },
-        [] as Category[]
-      );
+          return {
+            id: item.id, // Use the item ID from the server
+            title: item.name, // Use the name as the title
+            imageUrl: item.imageUrl, // Use the imageUrl directly
+            features: item.subcategory.map(
+              (sub: any) => sub.name // Extract subcategory names as features
+            ),
+          };
+        })
+        .filter((product): product is Product => product !== null); // Remove null values and assert type
 
-      console.log("Transformed Products:", transformedProducts);
-      setProducts(transformedProducts);
+      setProducts(fetchedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
+      setError("Failed to load products. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -77,22 +76,19 @@ const OurProducts = () => {
     fetchProducts();
   }, []);
 
-  // Function to generate dynamic links
-  const generateLink = (featureName: string | undefined) => {
-    if (!featureName) {
-      console.warn("Undefined or null featureName passed to generateLink");
-      return "undefined";
-    }
-    return featureName.toLowerCase().replace(/\s+/g, "-");
-  };
-
   if (isLoading) {
     return (
-      <>
-        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
-          <Spinner color="default" size="lg" className="brightness-0" />
-        </div>
-      </>
+      <div className="w-full flex justify-center items-center h-[300px]">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full flex justify-center items-center h-[300px]">
+        <p className="text-red-500">{error}</p>
+      </div>
     );
   }
 
@@ -125,7 +121,7 @@ const OurProducts = () => {
             >
               {/* Inner Container */}
               <div
-                className="w-full h-full bg-gray-100 rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] overflow-hidden"
+                className="w-full h-full rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] overflow-hidden bg-white"
                 style={{
                   position: "relative",
                 }}
@@ -138,7 +134,7 @@ const OurProducts = () => {
                     zIndex: 0,
                   }}
                 >
-                  <img src={product.imageUrl} alt={""} />
+                  <img src={product.imageUrl} alt={product.title} />
                 </div>
 
                 {/* Product Details */}
@@ -152,28 +148,25 @@ const OurProducts = () => {
                     {product.title}
                   </h1>
                   <ul className="flex flex-col justify-start items-start gap-y-1 md:gap-y-1.5 lg:gap-y-2 xl:gap-y-3">
-                    {product.features.map((feature, index) => {
-                      console.log("Feature:", feature);
-                      return (
-                        <li
-                          key={index}
-                          className="w-full lato font-normal text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
+                    {product.features.map((feature, index) => (
+                      <li
+                        key={index} // Use index as the key
+                        className="w-full lato font-normal text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
+                      >
+                        <a
+                          href={`/${generateLink(product.title)}/${generateLink(
+                            feature
+                          )}`}
                         >
-                          <a
-                            href={`/${generateLink(
-                              product.title
-                            )}/${generateLink(feature)}`}
-                          >
-                            {feature}
-                          </a>
-                          <img
-                            src={Arrow}
-                            className="w-[10px] lg:w-[11px] xl:w-[12px]"
-                            alt=""
-                          />
-                        </li>
-                      );
-                    })}
+                          {feature}
+                        </a>
+                        <img
+                          src={Arrow}
+                          className="w-[10px] lg:w-[11px] xl:w-[12px]"
+                          alt=""
+                        />
+                      </li>
+                    ))}
                   </ul>
 
                   {/* View Details Button */}

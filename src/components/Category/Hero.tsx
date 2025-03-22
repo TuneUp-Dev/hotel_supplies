@@ -317,7 +317,7 @@ const Hero: React.FC = () => {
   if (isLoading) {
     return (
       <>
-        <div className="absolute z-50 top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
           <Spinner color="default" size="lg" className="brightness-0" />
         </div>
       </>
@@ -649,9 +649,9 @@ const Hero: React.FC = () => {
             </div>
           </div>
 
-          <div className="min-w-full lg:min-w-[300px] lg:max-w-full">
+          <div className="w-full max-w-full">
             {/* Total Products Count and Sort Options */}
-            <div className="flex justify-between items-center mb-4">
+            <div className=" flex justify-between items-center mb-4">
               <h1 className="satoshi text-[24px] md:text-[26px] xl:text-[32px] font-bold">
                 {subtopic ? `${formatSubtopicName(subtopic)}` : "All Products"}
               </h1>

@@ -91,6 +91,7 @@ router.get("/", async (req, res) => {
             category: categoryData.name,
             subcategory: subcategoryData.name,
             name: productData.name,
+            imageUrl: categoryData.imageUrl || "",
             products: productData.products || [],
           });
         }

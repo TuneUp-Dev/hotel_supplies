@@ -178,7 +178,7 @@ const Cart = () => {
   if (isLoading) {
     return (
       <>
-        <div className="absolute z-50 top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
           <Spinner color="default" size="lg" className="brightness-0" />
         </div>
       </>
