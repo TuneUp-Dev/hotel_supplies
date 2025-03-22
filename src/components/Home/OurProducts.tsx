@@ -12,59 +12,58 @@ const products = [
   {
     id: 1,
     image: Product1,
-    title: "Premium Hospitality Linen & Equipment",
+    title: "Hospitality Linen & Equipment",
     features: [
       "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
+      "Bathroom Essentials",
+      "Room Comfort & Accessories",
+      "Dining & Banquet Linen",
     ],
   },
   {
     id: 2,
     image: Product2,
-    title: "Premium Hospitality Linen & Equipment",
+    title: "Air Fresheners & Oil Diffusers",
     features: [
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
+      "Aerosol Air Fresheners & Dispensers",
+      "Oxygen Air Fresheners & Diffusers",
+      "Oil Diffusers & Fragrances",
+      "Coverage-Based Diffusers",
     ],
   },
   {
     id: 3,
     image: Product3,
-    title: "Premium Hospitality Linen & Equipment",
+    title: "Hygiene Products & Supplies",
     features: [
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
+      "Guest Amenities",
+      "Soap & Sanitization Dispensers",
+      "Paper Products & Dispensers",
+      "Cleaning & Consumer Products",
     ],
   },
   {
     id: 4,
     image: Product4,
-    title: "Premium Hospitality Linen & Equipment",
-    features: [
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-    ],
+    title: "Environmental Simulation & Lab Equipment",
+    features: ["Testing Chambers", "Thermal Shock Chambers"],
   },
   {
     id: 5,
     image: Product5,
-    title: "Premium Hospitality Linen & Equipment",
+    title: "Technology & Software",
     features: [
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
-      "Bedroom Linen",
+      "Wireless Solutions",
+      "Pest Control Solutions",
+      "ERP & Business Software",
     ],
   },
 ];
+
+// Function to generate dynamic links
+const generateLink = (featureName: string) => {
+  return featureName.toLowerCase().replace(/\s+/g, "-");
+};
 
 const OurProducts = () => {
   return (
@@ -125,10 +124,16 @@ const OurProducts = () => {
                   <ul className="flex flex-col justify-start items-start gap-y-1 md:gap-y-1.5 lg:gap-y-2 xl:gap-y-3">
                     {product.features.map((feature, index) => (
                       <li
-                        key={index}
-                        className="w-full lato text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
+                        key={index} // Use index as the key
+                        className="w-full lato font-normal text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
                       >
-                        {feature}
+                        <a
+                          href={`/${generateLink(product.title)}/${generateLink(
+                            feature
+                          )}`}
+                        >
+                          {feature}
+                        </a>
                         <img
                           src={Arrow}
                           className="w-[10px] lg:w-[11px] xl:w-[12px]"
