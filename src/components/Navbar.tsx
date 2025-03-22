@@ -4,8 +4,10 @@ import Menu from "../assets/menu.svg";
 import Close from "../assets/close.svg";
 import Search from "../assets/search.svg";
 import Cart from "../assets/cart.svg";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -52,10 +54,10 @@ const Navbar = () => {
           </button>
 
           <div className="flex justify-end items-center gap-x-3">
-            <button onClick={toggleMobileMenu} className="text-black">
+            <button className="text-black">
               <img src={Search} alt="" className="w-6 h-6" />
             </button>
-            <button onClick={toggleMobileMenu} className="text-black">
+            <button onClick={() => navigate("/cart")} className="text-black">
               <img src={Cart} alt="" className="w-6 h-6" />
             </button>
           </div>

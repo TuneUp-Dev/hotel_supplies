@@ -12,9 +12,9 @@ import {
 } from "@heroui/react";
 import { ChevronRightIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import Filter from "../../assets/filter.svg";
+import Close from "../../assets/close.svg";
 import Tick from "../../assets/tick2.svg";
 import Arrow from "../../assets/arrow_down.svg";
-import Cart from "../../assets/cart.svg";
 import axios from "axios";
 
 type IconSvgProps = SVGProps<SVGSVGElement>;
@@ -82,6 +82,8 @@ const Hero: React.FC = () => {
     { key: "alphabetical", label: "Alphabetical" },
     { key: "price", label: "Price" },
   ];
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Trigger subtopic on page load
   useEffect(() => {
@@ -314,9 +316,11 @@ const Hero: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="w-screen h-screen bg-white flex justify-center items-center">
-        <Spinner color="default" size="lg" className="brightness-0" />
-      </div>
+      <>
+        <div className="absolute z-50 top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+          <Spinner color="default" size="lg" className="brightness-0" />
+        </div>
+      </>
     );
   }
 
@@ -461,295 +465,319 @@ const Hero: React.FC = () => {
     }
   };
 
+  const truncateText = (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  };
+
   return (
-    <div className="py-10 px-16">
-      <div className="flex justify-between items-center">
-        <Breadcrumbs size={"md"} className="my-6">
-          {breadcrumbs.map((breadcrumb, index) => {
-            const isLast = index === breadcrumbs.length - 1;
-            return (
-              <BreadcrumbItem key={index} href={breadcrumb.href}>
-                {isLast ? (
-                  <p className="font-semibold">{breadcrumb.label}</p>
-                ) : (
-                  breadcrumb.label
-                )}
-              </BreadcrumbItem>
-            );
-          })}
-        </Breadcrumbs>
-
-        <Button className="bg-black text-white">
-          <img
-            src={Cart}
-            className="w-5 invert brightness-0 contrast-200"
-            alt=""
-          />
-          View Cart
-        </Button>
-      </div>
-
-      <div className="flex space-x-10 mb-6">
-        <div className="w-[300px] border-[1px] border-black/10 p-5 rounded-[20px]">
-          <div className="flex justify-between items-center border-b-[1px] pb-4">
-            <h2 className="satoshi text-[20px] font-semibold">Filters</h2>
-            <img className="w-[24px]" src={Filter} alt="" />
-          </div>
-          <div className="space-y-4 mt-4">
-            {/* Dynamically generate filter sections based on productData */}
-            {Object.entries(productData).map(([category, subcategories]) => (
-              <div key={category}>
-                <div
-                  className="flex justify-between items-center cursor-pointer text-[16px] font-light"
-                  onClick={() => toggleSection(category)}
-                >
-                  <h3 className="satoshi text-[16px] font-semibold text-black/60">
-                    {toCamelCase(category)}
-                  </h3>
-                  {openSections[category] ? (
-                    <ChevronDownIcon className="h-5 w-5 text-black/60" />
+    <>
+      <div className="px-4 sm:px-8 lg:px-12 xl:px-16 pt-0 pb-6 md:pb-10">
+        <div className="flex flex-col sm:flex-row justify-start items-start sm:items-center">
+          <Breadcrumbs size={"md"} className="my-6">
+            {breadcrumbs.map((breadcrumb, index) => {
+              const isLast = index === breadcrumbs.length - 1;
+              const truncatedLabel = truncateText(breadcrumb.label, 20);
+              return (
+                <BreadcrumbItem key={index} href={breadcrumb.href}>
+                  {isLast ? (
+                    <p className="font-semibold">{truncatedLabel}</p>
                   ) : (
-                    <ChevronRightIcon className="h-5 w-5 text-black/60" />
+                    truncatedLabel
                   )}
-                </div>
-                {openSections[category] && (
-                  <ul className="font-light mt-2 space-y-2.5 text-black/60">
-                    {Object.entries(subcategories).map(
-                      ([subcategory, subtopics]) => (
-                        <li key={subcategory}>
-                          <div
-                            className="flex justify-between items-center cursor-pointer text-[16px] font-semibold"
-                            onClick={() => toggleSection(subcategory)}
-                          >
-                            <h4 className="satoshi text-[15px] font-semibold text-black">
-                              {toCamelCase(subcategory)}
-                            </h4>
-                          </div>
-
-                          <ul className="pl-3 mt-2 space-y-2">
-                            {subtopics.map((subtopic) => (
-                              <li
-                                key={subtopic.name}
-                                className="flex justify-between items-center cursor-pointer text-[15px] font-light"
-                                onClick={() => {
-                                  navigate(
-                                    `/${formatString(category)}/${formatString(
-                                      subcategory
-                                    )}/${formatString(subtopic.name)}`
-                                  );
-                                  setProducts(subtopic.products);
-                                }}
-                              >
-                                {toCamelCase(subtopic.name)}{" "}
-                                <ChevronRightIcon className="min-h-4 max-h-4 min-w-4 max-w-4" />
-                              </li>
-                            ))}
-                          </ul>
-                        </li>
-                      )
-                    )}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Colors and Size Components */}
-          <div className="w-full flex flex-col justify-between items-center border-y-[1px] mt-5 py-4">
-            <div
-              className="w-full flex justify-between items-center cursor-pointer"
-              onClick={() => toggleSection("colors")}
-            >
-              <h2 className="satoshi text-[20px] font-semibold">Colors</h2>
-              {openSections.colors ? (
-                <ChevronDownIcon className="h-5 w-5 text-black/60" />
-              ) : (
-                <ChevronRightIcon className="h-5 w-5 text-black/60" />
-              )}
-            </div>
-            {openSections.colors && (
-              <div className="w-full flex justify-start items-center gap-x-4">
-                {["#063AF5", "#F506A4", "#7D06F5", "white", "black"].map(
-                  (color) => (
-                    <span
-                      key={color}
-                      className={`w-[35px] h-[35px] rounded-full flex justify-center items-center cursor-pointer border-[1px] border-black/20`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => handleColorClick(color)}
-                    >
-                      {selectedColor === color && (
-                        <img
-                          src={Tick}
-                          alt="Selected"
-                          className={`w-4 h-4 ${
-                            selectedColor === "white" ? "invert" : ""
-                          }`}
-                        />
-                      )}
-                    </span>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="w-full flex flex-col justify-between items-center border-b-[1px] py-4">
-            <div
-              className="w-full flex justify-between items-center cursor-pointer"
-              onClick={() => toggleSection("size")}
-            >
-              <h2 className="satoshi text-[20px] font-semibold">Sizes</h2>
-              {openSections.size ? (
-                <ChevronDownIcon className="h-5 w-5 text-black/60" />
-              ) : (
-                <ChevronRightIcon className="h-5 w-5 text-black/60" />
-              )}
-            </div>
-
-            {openSections.size && (
-              <div className="w-full flex flex-wrap justify-start items-center gap-3 mt-2">
-                {sizes.map((size) => (
-                  <Button
-                    key={size}
-                    className={`w-auto max-w-[90px] h-[40px] px-10 rounded-full satoshi font-light text-[14px] flex justify-center items-center cursor-pointer transition-all duration-300`}
-                    style={{
-                      backgroundColor:
-                        selectedSize === size ? "black" : "#F0F0F0",
-                      color: selectedSize === size ? "white" : "black",
-                    }}
-                    onPress={() => handleSizesClick(size)}
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="w-full flex flex-wrap justify-start items-center gap-3 py-6">
-            <Button
-              className={`w-full h-[50px] bg-black text-white px-10 rounded-full satoshi font-light text-[14px] flex justify-center items-center cursor-pointer transform transition-all duration-300 ease-linear`}
-            >
-              Apply Filter
-            </Button>
-          </div>
+                </BreadcrumbItem>
+              );
+            })}
+          </Breadcrumbs>
         </div>
 
-        <div className="w-3/4">
-          {/* Total Products Count and Sort Options */}
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="satoshi text-[32px] font-bold">
-              {subtopic ? `${formatSubtopicName(subtopic)}` : "All Products"}
-            </h1>
-
-            <div className="flex justify-end items-center gap-x-4">
-              <div className="satoshi text-[16px] font-normal text-black/60">
-                Showing {indexOfFirstProduct + 1}-
-                {Math.min(indexOfLastProduct, products.length)} of{" "}
-                {products.length} Products
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="satoshi text-[16px] font-normal text-black/60">
-                  Sort by:
-                </span>
-                <div className="relative w-[125px]">
-                  <button
-                    className="w-full flex items-center justify-between rounded-md satoshi text-[16px] font-medium text-left focus:outline-none"
-                    onClick={() => setIsOpen(!isOpen)}
+        <div className="flex lg:space-x-10 my-6">
+          <div
+            className={`overflow-y-scroll fixed lg:static lg:block sm:min-w-[300px] sm:max-w-[300px] w-screen h-[60vh] sm:h-auto bottom-0 top-auto sm:top-0 sm:bottom-auto shadow-[0px_0px_15px_0px_gray] lg:shadow-none left-0 lg:h-full bg-white lg:bg-transparent border-[1px] border-black/10 p-6 sm:p-5 rounded-tr-[20px] rounded-tl-[20px] sm:rounded-tl-[0px] sm:rounded-r-[20px] lg:rounded-[20px] transform transition-transform duration-300 ease-in-out ${
+              isFilterOpen
+                ? "translate-y-0 translate-x-0"
+                : "translate-y-[65vh] sm:translate-y-[0px] sm:-translate-x-[300px]"
+            } lg:translate-x-0 z-40`}
+          >
+            <div className="flex justify-between items-center border-b-[1px] pb-4">
+              <h2 className="satoshi text-[20px] font-semibold">Filters</h2>
+              <img className="w-[24px] hidden lg:block" src={Filter} alt="" />
+              <img
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="w-[24px] lg:hidden"
+                src={Close}
+                alt=""
+              />
+            </div>
+            <div className="space-y-4 mt-4">
+              {/* Dynamically generate filter sections based on productData */}
+              {Object.entries(productData).map(([category, subcategories]) => (
+                <div key={category}>
+                  <div
+                    className="flex justify-between items-center cursor-pointer text-[16px] font-light"
+                    onClick={() => toggleSection(category)}
                   >
-                    {options.find((opt) => opt.key === selected)?.label}
+                    <h3 className="satoshi text-[16px] font-semibold text-black/60">
+                      {toCamelCase(category)}
+                    </h3>
+                    {openSections[category] ? (
+                      <ChevronDownIcon className="min-h-5 max-h-5 min-w-5 max-w-5 text-black/60" />
+                    ) : (
+                      <ChevronRightIcon className="min-h-5 max-h-5 min-w-5 max-w-5 text-black/60" />
+                    )}
+                  </div>
+                  {openSections[category] && (
+                    <ul className="font-light mt-2 space-y-2.5 text-black/60">
+                      {Object.entries(subcategories).map(
+                        ([subcategory, subtopics]) => (
+                          <li key={subcategory}>
+                            <div
+                              className="flex justify-between items-center cursor-pointer text-[16px] font-semibold"
+                              onClick={() => toggleSection(subcategory)}
+                            >
+                              <h4 className="satoshi text-[15px] font-semibold text-black">
+                                {toCamelCase(subcategory)}
+                              </h4>
+                            </div>
 
-                    {/* Animated Arrow */}
-                    <img
-                      src={Arrow}
-                      alt=""
-                      className={`transition-transform duration-300 w-4 ${
-                        isOpen ? "rotate-180" : "rotate-0"
-                      }`}
-                    />
-                  </button>
-
-                  {isOpen && (
-                    <ul className="absolute w-[150px] right-0 mt-1 border-[1px] border-gray-200 rounded-2xl shadow-lg bg-white text-black z-10 transition-all transform duration-500 ease-linear">
-                      {options.map((option) => (
-                        <li
-                          key={option.key}
-                          className="px-3 py-1.5 m-2 cursor-pointer rounded-[10px] hover:bg-[#F6F6F6]"
-                          onClick={() => {
-                            setSelected(option.key);
-                            setIsOpen(false);
-                          }}
-                        >
-                          {option.label}
-                        </li>
-                      ))}
+                            <ul className="pl-3 mt-2 space-y-2">
+                              {subtopics.map((subtopic) => (
+                                <li
+                                  key={subtopic.name}
+                                  className="flex justify-between items-center cursor-pointer text-[15px] font-light"
+                                  onClick={() => {
+                                    navigate(
+                                      `/${formatString(
+                                        category
+                                      )}/${formatString(
+                                        subcategory
+                                      )}/${formatString(subtopic.name)}`
+                                    );
+                                    setProducts(subtopic.products);
+                                  }}
+                                >
+                                  {toCamelCase(subtopic.name)}{" "}
+                                  <ChevronRightIcon className="min-h-4 max-h-4 min-w-4 max-w-4" />
+                                </li>
+                              ))}
+                            </ul>
+                          </li>
+                        )
+                      )}
                     </ul>
                   )}
                 </div>
+              ))}
+            </div>
+
+            {/* Colors and Size Components */}
+            <div className="w-full flex flex-col justify-between items-center border-y-[1px] mt-5 py-4">
+              <div
+                className="w-full flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection("colors")}
+              >
+                <h2 className="satoshi text-[20px] font-semibold">Colors</h2>
+                {openSections.colors ? (
+                  <ChevronDownIcon className="h-5 w-5 text-black/60" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5 text-black/60" />
+                )}
               </div>
+              {openSections.colors && (
+                <div className="w-full flex justify-start items-center gap-x-4">
+                  {["#063AF5", "#F506A4", "#7D06F5", "white", "black"].map(
+                    (color) => (
+                      <span
+                        key={color}
+                        className={`w-[35px] h-[35px] rounded-full flex justify-center items-center cursor-pointer border-[1px] border-black/20`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleColorClick(color)}
+                      >
+                        {selectedColor === color && (
+                          <img
+                            src={Tick}
+                            alt="Selected"
+                            className={`w-4 h-4 ${
+                              selectedColor === "white" ? "invert" : ""
+                            }`}
+                          />
+                        )}
+                      </span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="w-full flex flex-col justify-between items-center border-b-[1px] py-4">
+              <div
+                className="w-full flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection("size")}
+              >
+                <h2 className="satoshi text-[20px] font-semibold">Sizes</h2>
+                {openSections.size ? (
+                  <ChevronDownIcon className="h-5 w-5 text-black/60" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5 text-black/60" />
+                )}
+              </div>
+
+              {openSections.size && (
+                <div className="w-full flex flex-wrap justify-start items-center gap-3 mt-2">
+                  {sizes.map((size) => (
+                    <Button
+                      key={size}
+                      className={`w-auto max-w-[90px] h-[40px] px-10 rounded-full satoshi font-light text-[14px] flex justify-center items-center cursor-pointer transition-all duration-300`}
+                      style={{
+                        backgroundColor:
+                          selectedSize === size ? "black" : "#F0F0F0",
+                        color: selectedSize === size ? "white" : "black",
+                      }}
+                      onPress={() => handleSizesClick(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="w-full flex flex-wrap justify-start items-center gap-3 py-6">
+              <Button
+                className={`w-full h-[50px] bg-black text-white px-10 rounded-full satoshi font-light text-[14px] flex justify-center items-center cursor-pointer transform transition-all duration-300 ease-linear`}
+              >
+                Apply Filter
+              </Button>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-x-4 gap-y-6">
-            {isLoading ? (
-              <div className="col-span-3 text-center">
-                <div className="w-full h-full bg-white flex justify-center items-center">
-                  <Spinner color="default" size="lg" className="brightness-0" />
+
+          <div className="min-w-full lg:min-w-[300px] lg:max-w-full">
+            {/* Total Products Count and Sort Options */}
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="satoshi text-[24px] md:text-[26px] xl:text-[32px] font-bold">
+                {subtopic ? `${formatSubtopicName(subtopic)}` : "All Products"}
+              </h1>
+
+              <div className="flex justify-end items-center gap-x-4">
+                <div className="satoshi text-[10px] md:text-[13px] xl:text-[16px] font-normal text-black/60">
+                  Showing {indexOfFirstProduct + 1}-
+                  {Math.min(indexOfLastProduct, products.length)} of{" "}
+                  {products.length} Products
+                </div>
+
+                <div className="hidden md:flex items-center space-x-1.5">
+                  <span className="satoshi md:text-[13px] xl:text-[16px] font-normal text-black/60">
+                    Sort by:
+                  </span>
+                  <div className="relative md:w-[110px] xl:w-[125px]">
+                    <button
+                      className="w-full flex items-center justify-between rounded-md satoshi md:text-[14px] xl:text-[16px] font-medium text-left focus:outline-none"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      {options.find((opt) => opt.key === selected)?.label}
+
+                      {/* Animated Arrow */}
+                      <img
+                        src={Arrow}
+                        alt=""
+                        className={`transition-transform duration-300 w-4 ${
+                          isOpen ? "rotate-180" : "rotate-0"
+                        }`}
+                      />
+                    </button>
+
+                    {isOpen && (
+                      <ul className="absolute md:w-[130px] xl:w-[150px] right-0 mt-1 lg:mt-2 border-[1px] border-gray-200 rounded-2xl shadow-lg bg-white text-black z-10 transition-all transform duration-500 ease-linear">
+                        {options.map((option) => (
+                          <li
+                            key={option.key}
+                            className="px-3 md:py-1 lg:py-1.5 m-2 cursor-pointer rounded-[10px] md:text-[14px] xl:text-[16px] hover:bg-[#F6F6F6]"
+                            onClick={() => {
+                              setSelected(option.key);
+                              setIsOpen(false);
+                            }}
+                          >
+                            {option.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="w-[32px] h-[32px] rounded-full bg-[#F0F0F0] flex justify-center items-center cursor-pointer lg:hidden"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
+                  <img className="w-[16px]" src={Filter} alt="" />
                 </div>
               </div>
-            ) : (
-              currentProducts.map((product, index) => (
-                <div key={index} className="">
-                  <div
-                    className="w-[300px] h-[300px] rounded-[20px] cursor-pointer bg-[#EFEFEF] mb-2 hover:shadow-[0px_0px_2px_0px_lightgray] hover:scale-[1.002] transition-all duration-200 ease-linear"
-                    onClick={() => handleProductClick(product)}
-                  >
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover rounded-[20px]"
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 md:gap-x-8 lg:gap-x-4 gap-y-7 sm:gap-y-6">
+              {isLoading ? (
+                <div className="col-span-3 text-center">
+                  <div className="w-full h-full bg-white flex justify-center items-center">
+                    <Spinner
+                      color="default"
+                      size="lg"
+                      className="brightness-0"
                     />
                   </div>
-                  <h3 className="satoshi text-[20px] font-semibold mt-2">
-                    {product.name}
-                  </h3>
                 </div>
-              ))
+              ) : (
+                currentProducts.map((product, index) => (
+                  <div key={index} className="">
+                    <div
+                      className="w-full h-[300px] rounded-[20px] cursor-pointer bg-[#EFEFEF] mb-2 hover:shadow-[0px_0px_2px_0px_lightgray] hover:scale-[1.002] transition-all duration-200 ease-linear"
+                      onClick={() => handleProductClick(product)}
+                    >
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-[20px]"
+                      />
+                    </div>
+                    <h3 className="satoshi text-[18px] sm:text-[20px] md:text-[18px] lg:text-[20px] font-semibold mt-2">
+                      {product.name}
+                    </h3>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center w-full mt-20">
+                <Button
+                  className="bg-default-200/50 w-[110px] flex justify-between items-center"
+                  onPress={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronIcon /> Previous
+                </Button>
+
+                <Pagination
+                  total={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  renderItem={renderItem}
+                  classNames={{
+                    item: "text-[14px] rounded-[10px] bg-transparent shadow-none",
+                    cursor: "bg-[#F1F1F1] text-[14px] text-black",
+                  }}
+                />
+
+                <Button
+                  className="bg-default-200/50 w-[85px] flex justify-between items-center"
+                  onPress={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next <ChevronIcon className="rotate-180" />
+                </Button>
+              </div>
             )}
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center w-full mt-20">
-              <Button
-                className="bg-default-200/50 w-[110px] flex justify-between items-center"
-                onPress={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                <ChevronIcon /> Previous
-              </Button>
-
-              <Pagination
-                total={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
-                renderItem={renderItem}
-                classNames={{
-                  item: "text-[14px] rounded-[10px] bg-transparent shadow-none",
-                  cursor: "bg-[#F1F1F1] text-[14px] text-black",
-                }}
-              />
-
-              <Button
-                className="bg-default-200/50 w-[85px] flex justify-between items-center"
-                onPress={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next <ChevronIcon className="rotate-180" />
-              </Button>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Breadcrumbs, BreadcrumbItem, Button } from "@heroui/react";
-import { Popconfirm } from "antd"; // Import Popconfirm from Ant Design
+import { Breadcrumbs, BreadcrumbItem, Button, Spinner } from "@heroui/react";
+import { Alert } from "@heroui/alert";
+import { Popconfirm } from "antd";
 import Arrow from "../../assets/cart_arrow_right.svg";
-import ArrowDown from "../../assets/arrow_down.svg";
-import Search from "../../assets/search_cart.svg";
 import CartIcon from "../../assets/cart.svg";
 import Delete from "../../assets/delete.svg";
 import Minus from "../../assets/minus.svg";
 import Plus from "../../assets/plus.svg";
+import { useNavigate } from "react-router-dom";
 
 interface CartItem {
   id: string;
@@ -18,16 +18,26 @@ interface CartItem {
   color: string;
   size: string;
   quantity: number;
+  category: string;
+  subcategory: string;
+  subtopic: string;
+  productName: string;
 }
 
 const Cart = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [message, setMessage] = useState("");
-  const [isSending, setIsSending] = useState(false); // Track sending state
-  const [isSuccess, setIsSuccess] = useState(false); // Track success state
+  const [isSending, setIsSending] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [notification, setNotification] = useState<{
+    message: string;
+    visible: boolean;
+  }>({ message: "", visible: false });
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Retrieve cart items from localStorage
@@ -45,18 +55,46 @@ const Cart = () => {
   }, []);
 
   const handleRemoveItem = (index: number) => {
-    const updatedCartItems = [...cartItems];
-    updatedCartItems.splice(index, 1);
-    setCartItems(updatedCartItems);
-    localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
+    // Show deletion in progress notification
+    setNotification({ message: "Deleting item...", visible: true });
+
+    try {
+      // Simulating an error scenario
+      if (Math.random() < 0.2) {
+        throw new Error("Failed to delete item. Please try again.");
+      }
+
+      // Proceed with deletion
+      const updatedCartItems = [...cartItems];
+      updatedCartItems.splice(index, 1);
+      setCartItems(updatedCartItems);
+      localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
+
+      // Update notification to show deletion completed
+      setNotification({ message: "Item deleted successfully!", visible: true });
+
+      // Hide the notification after 3 seconds
+      setTimeout(() => {
+        setNotification({ message: "", visible: false });
+      }, 3000);
+    } catch (error) {
+      // Display warning notification on error
+      setNotification({
+        message: "Error: Unable to delete item.",
+        visible: true,
+      });
+
+      setTimeout(() => {
+        setNotification({ message: "", visible: false });
+      }, 3000);
+    }
   };
 
   const handleSubmitEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSending(true); // Set sending state to true
+    setIsSending(true);
 
     try {
-      // Call the backend API to send the enquiry email
       const response = await fetch("http://localhost:5003/send-enquiry", {
         method: "POST",
         headers: {
@@ -85,58 +123,88 @@ const Cart = () => {
 
       // Set success state to true and reset after 5 seconds
       setIsSuccess(true);
-      setTimeout(() => setIsSuccess(false), 5000); // Hide success message after 5 seconds
+      setTimeout(() => setIsSuccess(false), 5000);
     } catch (error) {
       console.error("Error sending enquiry:", error);
       alert("Failed to send enquiry. Please try again.");
     } finally {
-      setIsSending(false); // Reset sending state
+      setIsSending(false);
     }
   };
 
+  useEffect(() => {
+    // Retrieve stored input values from sessionStorage
+    setName(sessionStorage.getItem("name") || "");
+    setEmail(sessionStorage.getItem("email") || "");
+    setContactNumber(sessionStorage.getItem("contactNumber") || "");
+    setMessage(sessionStorage.getItem("message") || "");
+  }, []);
+
+  const handleInputChange = (key: string, value: string) => {
+    sessionStorage.setItem(key, value);
+  };
+
+  // Function to handle product navigation
+  const handleProductNavigation = async (item: CartItem) => {
+    const { category, subcategory, subtopic, productName } = item;
+
+    // Construct the URL using category, subcategory, subtopic, and productName
+    const url = `/${category}/${subcategory}/${subtopic}/${productName}`;
+    console.log("Navigating to:", url);
+
+    // Navigate to the product page
+    navigate(url);
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Simulating data fetch from DB
+        const storedCartItems = JSON.parse(
+          localStorage.getItem("cartItems") || "[]"
+        ) as CartItem[];
+        setCartItems(storedCartItems);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="absolute z-50 top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+          <Spinner color="default" size="lg" className="brightness-0" />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="w-full px-6 md:px-8 lg:px-14 xl:px-24 Satoshi">
-        <div className="hidden border-b-[1px] border-black/10 mt-5 py-6 md:flex items-center justify-between">
-          {/* Left Side Menu */}
-          <div className="flex justify-between items-center md:space-x-4 xl:space-x-6">
-            <div className="hidden md:block md:w-[140px] lg:w-[160px] xl:w-[210px] text-nowrap">
-              <h1 className="text-black agbalumo text-[18px] md:text-[20px] lg:text-[25px] xl:text-[29px] flex items-center gap-x-2">
-                Hotel <span className="text-[#EDCF46]">Supplies</span>
-              </h1>
-            </div>
-            <p className="cursor-pointer font-light text-[16px] md:text-[14px] flex justify-start items-center gap-x-1 md:pl-6 lg:pl-16">
-              Shop <img className="w-[16px] mt-1" src={ArrowDown} alt="" />
-            </p>
-            <p className="cursor-pointer font-light text-[16px] md:text-[14px]">
-              On Sale
-            </p>
-            <p className="cursor-pointer font-light text-[16px] md:text-[14px]">
-              New Arrivals
-            </p>
-            <p className="cursor-pointer font-light text-[16px] md:text-[14px]">
-              Brands
-            </p>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-[630px] ml-8 md:ml-6 xl:ml-8 mr-6 md:mr-4 xl:mr-6">
-            <input
-              type="text"
-              placeholder="Search for products..."
-              className="w-full h-[45px] md:h-[35px] px-14 md:pl-9 md:pr-3 py-2 bg-[#F0F0F0] rounded-full font-light text-black/40 text-[16px] md:text-[13px] outline-none"
-            />
-            <span className="absolute left-3 md:left-2.5 top-1/2 transform -translate-y-1/2">
-              <img className="w-[24px] md:w-[20px]" src={Search} alt="" />
-            </span>
-          </div>
-
-          {/* Cart Icon */}
-          <div className="text-xl cursor-pointer">
-            <img className="w-[24px] md:w-[22px]" src={CartIcon} alt="" />
-          </div>
+      {/* Notification Alert */}
+      {notification.visible && (
+        <div className="fixed top-4 right-4 z-50">
+          <Alert
+            color={
+              notification.message.includes("Error")
+                ? "warning"
+                : notification.message === "Item deleted successfully!"
+                ? "success"
+                : "default"
+            }
+            title={notification.message}
+            onClose={() => setNotification({ message: "", visible: false })}
+          />
         </div>
+      )}
 
+      <div className="w-full px-6 md:px-8 lg:px-14 xl:px-24 pt-6 pb-6 md:pb-10 md:pt-0 Satoshi">
         <Breadcrumbs size={"sm"} className="my-6">
           <BreadcrumbItem href="/">Home</BreadcrumbItem>
           <BreadcrumbItem href="/cart">Cart</BreadcrumbItem>
@@ -154,7 +222,10 @@ const Cart = () => {
                   className="relative flex items-start justify-between py-5"
                 >
                   {/* Product Image */}
-                  <div className="w-[100px] h-[100px] md:w-[125px] md:h-[125px] bg-[#F3F3F3] rounded-[9px] flex items-center justify-center">
+                  <div
+                    className="w-[100px] h-[100px] md:w-[125px] md:h-[125px] bg-[#F3F3F3] rounded-[9px] flex items-center justify-center cursor-pointer"
+                    onClick={() => handleProductNavigation(item)}
+                  >
                     <img
                       src={item.imageUrl || CartIcon}
                       alt=""
@@ -164,7 +235,10 @@ const Cart = () => {
 
                   {/* Product Details */}
                   <div className="flex-1 px-4 satoshi">
-                    <h3 className="text-[16px] md:text-[20px] lg:text-[18px] xl:text-[20px] font-bold">
+                    <h3
+                      className="text-[16px] md:text-[20px] lg:text-[18px] xl:text-[20px] font-bold cursor-pointer"
+                      onClick={() => handleProductNavigation(item)}
+                    >
                       {item.name}
                     </h3>
                     <p className="text-[12px] md:text-[14px] lg:text-[12px] xl:text-[14px] text-black/60">
@@ -238,7 +312,10 @@ const Cart = () => {
                 type="text"
                 placeholder="Name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  handleInputChange("name", e.target.value);
+                }}
                 className="w-full h-[50px] px-5 rounded-[62px] text-black/50 satoshi font-normal bg-[#F0F0F0] focus:outline-none outline-none focus:ring-0 ring-0"
                 required
               />
@@ -246,7 +323,10 @@ const Cart = () => {
                 type="email"
                 placeholder="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  handleInputChange("email", e.target.value);
+                }}
                 className="w-full h-[50px] px-5 rounded-[62px] text-black/50 satoshi font-normal bg-[#F0F0F0] focus:outline-none outline-none focus:ring-0 ring-0"
                 required
               />
@@ -254,21 +334,27 @@ const Cart = () => {
                 type="text"
                 placeholder="Contact Number"
                 value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
+                onChange={(e) => {
+                  setContactNumber(e.target.value);
+                  handleInputChange("contactNumber", e.target.value);
+                }}
                 className="w-full h-[50px] px-5 rounded-[62px] text-black/50 satoshi font-normal bg-[#F0F0F0] focus:outline-none outline-none focus:ring-0 ring-0"
                 required
               />
               <input
                 placeholder="Message"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  handleInputChange("message", e.target.value);
+                }}
                 className="w-full h-[50px] px-5 rounded-[62px] text-black/50 satoshi font-normal bg-[#F0F0F0] focus:outline-none outline-none focus:ring-0 ring-0"
                 required
               ></input>
               <Button
                 type="submit"
                 className="w-full h-[60px] p-4 bg-black satoshi text-[16px] text-white rounded-[62px] flex items-center justify-center gap-2"
-                disabled={isSending} // Disable button while sending
+                disabled={isSending}
               >
                 {isSending ? (
                   "Sending Enquiry..."
