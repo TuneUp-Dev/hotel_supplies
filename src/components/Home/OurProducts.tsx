@@ -7,8 +7,8 @@ import axios from "axios";
 
 interface Product {
   id: string;
-  category?: string; // Make category optional
-  subcategory?: string; // Make subcategory optional
+  category?: string;
+  subcategory?: string;
   name: string;
   products: string[];
   imageUrl: string;
@@ -35,8 +35,7 @@ const OurProducts = () => {
 
       const transformedProducts: Category[] = response.data.reduce(
         (acc: Category[], product: Product) => {
-          // Ensure category is defined and not empty
-          const categoryName = product.category || "Uncategorized";
+          const categoryName = product.category || "UnCategorized";
 
           let category = acc.find((cat) => cat.title === categoryName);
           if (!category) {
@@ -49,7 +48,6 @@ const OurProducts = () => {
             acc.push(category);
           }
 
-          // Ensure subcategory is defined and not empty
           if (
             product.subcategory &&
             !category.features.includes(product.subcategory)
