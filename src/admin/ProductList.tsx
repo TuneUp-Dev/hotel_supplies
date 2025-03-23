@@ -99,7 +99,7 @@ const ProductList: React.FC = () => {
   const fetchProducts = useCallback(async () => {
     try {
       const response = await axios.get<Product[]>(
-        "hotel-supplies-backend.vercel.app/api/products"
+        "https://hotel-supplies-backend.vercel.app/api/products"
       );
       setProducts(response.data);
       setGroupedProducts(groupProducts(response.data));
@@ -121,7 +121,7 @@ const ProductList: React.FC = () => {
       }
 
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
           productToDelete.category
         )}/subcategory/${encodeURIComponent(
           productToDelete.subcategory
@@ -147,7 +147,7 @@ const ProductList: React.FC = () => {
 
       await axios.request({
         method: "DELETE",
-        url: "hotel-supplies-backend.vercel.app/api/products/bulk",
+        url: "https://hotel-supplies-backend.vercel.app/api/products/bulk",
         data: { ids: selectedIds, type },
       });
 
@@ -198,7 +198,7 @@ const ProductList: React.FC = () => {
       try {
         if (editEntityType === "category") {
           await axios.put(
-            `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               selectedProduct.category
             )}`,
             {
@@ -216,7 +216,7 @@ const ProductList: React.FC = () => {
           }
 
           await axios.put(
-            `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               productToUpdate.category
             )}/subcategory/${encodeURIComponent(
               productToUpdate.subcategory
@@ -295,7 +295,7 @@ const ProductList: React.FC = () => {
   const handleDeleteCategory = async (category: string) => {
     try {
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${category}`
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${category}`
       );
 
       if (selectedCategory === category) {
@@ -314,7 +314,7 @@ const ProductList: React.FC = () => {
   ) => {
     try {
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
           category
         )}/subcategory/${encodeURIComponent(subcategory)}`
       );
@@ -361,7 +361,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "hotel-supplies-backend.vercel.app/api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {
@@ -416,7 +416,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "hotel-supplies-backend.vercel.app/api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {

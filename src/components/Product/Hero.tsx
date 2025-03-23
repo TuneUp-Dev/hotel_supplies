@@ -55,6 +55,16 @@ const Hero = () => {
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
+  // Function to validate image URLs
+  const isValidImageUrl = (url: string): boolean => {
+    try {
+      new URL(url); // Check if the URL is valid
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
   const fetchProduct = useCallback(async () => {
     setIsLoading(true);
 
@@ -62,7 +72,7 @@ const Hero = () => {
       const paths = location.pathname.split("/").filter((path) => path !== "");
       const [category, subcategory, subtopic, productId] = paths;
 
-      const endpoint = `hotel-supplies-backend.vercel.app/api/products/${category}/${subcategory}/${subtopic}`;
+      const endpoint = `https://hotel-supplies-backend.vercel.app/api/products/${category}/${subcategory}/${subtopic}`;
       console.log("Fetching product from:", endpoint);
 
       const response = await axios.get<ProductGroup>(endpoint);
@@ -78,8 +88,20 @@ const Hero = () => {
         throw new Error("Product not found");
       }
 
-      setProductData(specificProduct);
-      console.log("Fetched specific product:", specificProduct);
+      const validatedProduct = {
+        ...specificProduct,
+        imageUrl: isValidImageUrl(specificProduct.imageUrl || "")
+          ? specificProduct.imageUrl
+          : "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk",
+        productImages: specificProduct.productImages.map((image) =>
+          isValidImageUrl(image)
+            ? image
+            : "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk"
+        ),
+      };
+
+      setProductData(validatedProduct);
+      console.log("Fetched specific product:", validatedProduct);
     } catch (error) {
       console.error("Error fetching product:", error);
       setProductData(null);
