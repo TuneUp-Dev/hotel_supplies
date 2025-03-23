@@ -55,10 +55,9 @@ const Hero = () => {
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  // Function to validate image URLs
   const isValidImageUrl = (url: string): boolean => {
     try {
-      new URL(url); // Check if the URL is valid
+      new URL(url);
       return true;
     } catch (error) {
       return false;
