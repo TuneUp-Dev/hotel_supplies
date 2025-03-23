@@ -40,13 +40,11 @@ const Cart = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Retrieve cart items from localStorage
     const storedCartItems = JSON.parse(
       localStorage.getItem("cartItems") || "[]"
     ) as CartItem[];
     setCartItems(storedCartItems);
 
-    // Log cart items with their IDs
     console.log("Cart Items on Load:", storedCartItems);
     console.log(
       "Cart Item IDs:",
@@ -55,30 +53,24 @@ const Cart = () => {
   }, []);
 
   const handleRemoveItem = (index: number) => {
-    // Show deletion in progress notification
     setNotification({ message: "Deleting item...", visible: true });
 
     try {
-      // Simulating an error scenario
       if (Math.random() < 0.2) {
         throw new Error("Failed to delete item. Please try again.");
       }
 
-      // Proceed with deletion
       const updatedCartItems = [...cartItems];
       updatedCartItems.splice(index, 1);
       setCartItems(updatedCartItems);
       localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
 
-      // Update notification to show deletion completed
       setNotification({ message: "Item deleted successfully!", visible: true });
 
-      // Hide the notification after 3 seconds
       setTimeout(() => {
         setNotification({ message: "", visible: false });
       }, 3000);
     } catch (error) {
-      // Display warning notification on error
       setNotification({
         message: "Error: Unable to delete item.",
         visible: true,
@@ -95,19 +87,22 @@ const Cart = () => {
     setIsSending(true);
 
     try {
-      const response = await fetch("http://localhost:5003/send-enquiry", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          contactNumber,
-          message,
-          cartItems,
-        }),
-      });
+      const response = await fetch(
+        "hotel-supplies-backend.vercel.app/send-enquiry",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            contactNumber,
+            message,
+            cartItems,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -115,13 +110,11 @@ const Cart = () => {
         throw new Error(errorData.message || "Failed to send enquiry.");
       }
 
-      // Clear the form fields
       setName("");
       setEmail("");
       setContactNumber("");
       setMessage("");
 
-      // Set success state to true and reset after 5 seconds
       setIsSuccess(true);
       setTimeout(() => setIsSuccess(false), 5000);
     } catch (error) {
@@ -133,7 +126,6 @@ const Cart = () => {
   };
 
   useEffect(() => {
-    // Retrieve stored input values from sessionStorage
     setName(sessionStorage.getItem("name") || "");
     setEmail(sessionStorage.getItem("email") || "");
     setContactNumber(sessionStorage.getItem("contactNumber") || "");
@@ -144,15 +136,12 @@ const Cart = () => {
     sessionStorage.setItem(key, value);
   };
 
-  // Function to handle product navigation
   const handleProductNavigation = async (item: CartItem) => {
     const { category, subcategory, subtopic, productName } = item;
 
-    // Construct the URL using category, subcategory, subtopic, and productName
     const url = `/${category}/${subcategory}/${subtopic}/${productName}`;
     console.log("Navigating to:", url);
 
-    // Navigate to the product page
     navigate(url);
   };
 
@@ -160,7 +149,6 @@ const Cart = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Simulating data fetch from DB
         const storedCartItems = JSON.parse(
           localStorage.getItem("cartItems") || "[]"
         ) as CartItem[];
@@ -178,7 +166,7 @@ const Cart = () => {
   if (isLoading) {
     return (
       <>
-        <div className="absolute z-50 top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
           <Spinner color="default" size="lg" className="brightness-0" />
         </div>
       </>
@@ -187,7 +175,6 @@ const Cart = () => {
 
   return (
     <>
-      {/* Notification Alert */}
       {notification.visible && (
         <div className="fixed top-4 right-4 z-50">
           <Alert

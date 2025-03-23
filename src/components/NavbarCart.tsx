@@ -20,13 +20,11 @@ const NavbarCart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
-    // Retrieve cart items from localStorage
     const storedCartItems = JSON.parse(
       localStorage.getItem("cartItems") || "[]"
     ) as CartItem[];
     setCartItems(storedCartItems);
 
-    // Log cart items with their IDs
     console.log("Cart Items on Load:", storedCartItems);
     console.log(
       "Cart Item IDs:",
@@ -34,7 +32,6 @@ const NavbarCart = () => {
     );
   }, []);
 
-  // Calculate the total number of unique items in the cart
   const totalCartItems = cartItems.length;
 
   return (

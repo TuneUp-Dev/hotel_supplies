@@ -1,78 +1,100 @@
 import { Button } from "@heroui/button";
 import Arrow from "../../assets/arrow_right.svg";
 import ArrowTop from "../../assets/arrow_top_right.svg";
-import Product1 from "../../assets/product1.png";
-import Product2 from "../../assets/product2.png";
-import Product3 from "../../assets/product3.png";
-import Product4 from "../../assets/product4.png";
-import Product5 from "../../assets/product5.png";
+import { useEffect, useState } from "react";
+import { Spinner } from "@heroui/react";
+import axios from "axios";
 
-// Product Data
-const products = [
-  {
-    id: 1,
-    image: Product1,
-    title: "Hospitality Linen & Equipment",
-    features: [
-      "Bedroom Linen",
-      "Bathroom Essentials",
-      "Room Comfort & Accessories",
-      "Dining & Banquet Linen",
-    ],
-  },
-  {
-    id: 2,
-    image: Product2,
-    title: "Air Fresheners & Oil Diffusers",
-    features: [
-      "Aerosol Air Fresheners & Dispensers",
-      "Oxygen Air Fresheners & Diffusers",
-      "Oil Diffusers & Fragrances",
-      "Coverage-Based Diffusers",
-    ],
-  },
-  {
-    id: 3,
-    image: Product3,
-    title: "Hygiene Products & Supplies",
-    features: [
-      "Guest Amenities",
-      "Soap & Sanitization Dispensers",
-      "Paper Products & Dispensers",
-      "Cleaning & Consumer Products",
-    ],
-  },
-  {
-    id: 4,
-    image: Product4,
-    title: "Environmental Simulation & Lab Equipment",
-    features: ["Testing Chambers", "Thermal Shock Chambers"],
-  },
-  {
-    id: 5,
-    image: Product5,
-    title: "Technology & Software",
-    features: [
-      "Wireless Solutions",
-      "Pest Control Solutions",
-      "ERP & Business Software",
-    ],
-  },
-];
+interface Product {
+  id: string;
+  category: string;
+  subcategory: string;
+  name: string;
+  products: string[];
+  imageUrl: string;
+}
 
-// Function to generate dynamic links
-const generateLink = (featureName: string) => {
-  return featureName.toLowerCase().replace(/\s+/g, "-");
-};
+interface Category {
+  id: string;
+  title: string;
+  imageUrl: string;
+  features: string[];
+}
 
 const OurProducts = () => {
+  const [products, setProducts] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get<Product[]>(
+        "hotel-supplies-backend.vercel.app/api/products"
+      );
+      console.log("API Response:", response.data);
+
+      const transformedProducts: Category[] = response.data.reduce(
+        (acc: Category[], product: Product) => {
+          let category = acc.find((cat) => cat.title === product.category);
+          if (!category) {
+            category = {
+              id: product.category.toLowerCase().replace(/\s+/g, "-"),
+              title: product.category,
+              imageUrl: product.imageUrl || "",
+              features: [],
+            };
+            acc.push(category);
+          }
+
+          if (
+            product.subcategory &&
+            !category.features.includes(product.subcategory)
+          ) {
+            category.features.push(product.subcategory);
+          }
+
+          return acc;
+        },
+        [] as Category[]
+      );
+
+      console.log("Transformed Products:", transformedProducts);
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const generateLink = (featureName: string | undefined) => {
+    if (!featureName) {
+      console.warn("Undefined or null featureName passed to generateLink");
+      return "undefined";
+    }
+    return featureName.toLowerCase().replace(/\s+/g, "-");
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+          <Spinner color="default" size="lg" className="brightness-0" />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div
         id="products"
         className="w-full md:w-[720px] lg:w-[1024px] xl:w-[1280px] mx-auto flex flex-col justify-center items-center gap-y-2.5 md:gap-y-4 mt-12 md:mt-16 lg:mt-20 xl:mt-28"
       >
-        {/* Section Title */}
         <h1 className="outfit font-medium text-[26px] md:text-[32px] lg:text-[39px] text-black text-center">
           Our Products Range
         </h1>
@@ -93,14 +115,13 @@ const OurProducts = () => {
                 background: "linear-gradient(195deg, white, white, #666666)",
               }}
             >
-              {/* Inner Container */}
               <div
-                className="w-full h-full rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] overflow-hidden bg-white"
+                className="w-full h-full bg-gray-100 rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] overflow-hidden"
                 style={{
                   position: "relative",
                 }}
               >
-                {/* Product Image */}
+                {/* Product Images */}
                 <div
                   className="w-full overflow-hidden"
                   style={{
@@ -108,10 +129,10 @@ const OurProducts = () => {
                     zIndex: 0,
                   }}
                 >
-                  <img src={product.image} alt={product.title} />
+                  <img src={product.imageUrl} alt={""} />
                 </div>
 
-                {/* Product Details */}
+                {/* Product's Details */}
                 <div
                   className="absolute bottom-0 w-full min-h-[200px] max-h-[200px] md:min-h-[220px] md:max-h-[220px] lg:min-h-[260px] lg:max-h-[260px] xl:min-h-[320px] xl:max-h-[320px] p-3 md:p-5 lg:p-6 xl:p-8 pt-3 lg:pt-4 xl:pt-6 pb-1 lg:pb-2 xl:pb-4 bg-white rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] xl:rounded-tr-[60px] xl:rounded-br-[60px] xl:rounded-bl-[60px] flex flex-col justify-start items-start gap-y-2 lg:gap-y-3 xl:gap-y-4"
                   style={{
@@ -122,34 +143,35 @@ const OurProducts = () => {
                     {product.title}
                   </h1>
                   <ul className="flex flex-col justify-start items-start gap-y-1 md:gap-y-1.5 lg:gap-y-2 xl:gap-y-3">
-                    {product.features.map((feature, index) => (
-                      <li
-                        key={index} // Use index as the key
-                        className="w-full lato font-normal text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
-                      >
-                        <a
-                          href={`/${generateLink(product.title)}/${generateLink(
-                            feature
-                          )}`}
+                    {product.features.map((feature, index) => {
+                      console.log("Feature:", feature);
+                      return (
+                        <li
+                          key={index}
+                          className="w-full lato font-normal text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px] flex justify-start items-center gap-x-1 xl:gap-x-1.5"
                         >
-                          {feature}
-                        </a>
-                        <img
-                          src={Arrow}
-                          className="w-[10px] lg:w-[11px] xl:w-[12px]"
-                          alt=""
-                        />
-                      </li>
-                    ))}
+                          <a
+                            href={`/${generateLink(
+                              product.title
+                            )}/${generateLink(feature)}`}
+                          >
+                            {feature}
+                          </a>
+                          <img
+                            src={Arrow}
+                            className="w-[10px] lg:w-[11px] xl:w-[12px]"
+                            alt=""
+                          />
+                        </li>
+                      );
+                    })}
                   </ul>
 
-                  {/* View Details Button */}
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[100px] md:w-[130px] lg:w-[150px] xl:w-[176px]">
                     <Button className="outfit font-normal text-[10px] md:text-[11px] lg:text-[13px] xl:text-[16px] border-[0.9px] bg-white border-black text-black rounded-[44px] w-[80px] md:w-[105px] lg:w-[110px] xl:w-[140px] max-h-[28px] md:min-h-[32px] lg:min-h-[40px] xl:min-h-[50px] overflow-hidden">
                       View Details
                     </Button>
 
-                    {/* Arrow Container */}
                     <span className="bg-[#003F2E] absolute top-0 right-0 md:right-2 lg:right-3 xl:right-1 rounded-full w-[28px] md:w-[32px] lg:w-[40px] xl:w-[50px] h-[28px] md:h-[32px] lg:h-[40px] xl:h-[50px] flex justify-center items-center overflow-visible">
                       <img
                         src={ArrowTop}

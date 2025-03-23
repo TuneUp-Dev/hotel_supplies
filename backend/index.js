@@ -2,7 +2,9 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const productRoutes = require("./routes/products");
+const categoriesRoutes = require("./routes/categories");
 const emailRoutes = require("./routes/email");
+const uploadRoutes = require("./routes/upload");
 const enquiryRoutes = require("./routes/enquiry");
 const corsConfig = require("./config/cors");
 
@@ -15,9 +17,11 @@ app.use(express.json());
 
 // Routes
 app.use("/api/products", productRoutes);
+app.use("/api/upload", uploadRoutes);
 app.use("/send-mail", emailRoutes);
 app.use("/send-newsletter", emailRoutes);
 app.use("/", enquiryRoutes);
+app.use("/api/categories", categoriesRoutes);
 
 // Start the server
 

@@ -5,58 +5,16 @@ const router = express.Router();
 
 // 🔹 Function to format strings for Firestore document IDs
 function formatString(str) {
+  if (!str || typeof str !== "string") {
+    console.error("Invalid input to formatString:", str);
+    throw new Error("Invalid input: Input must be a non-empty string.");
+  }
   return str
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/\//g, "@")
     .replace(/[^a-z0-9-@]/g, "");
 }
-
-// ✅ Add Product Data to Firestore
-router.post("/", async (req, res) => {
-  try {
-    const productData = req.body;
-    const batch = db.batch();
-
-    for (const [category, subcategories] of Object.entries(productData)) {
-      const categoryId = formatString(category);
-      const categoryRef = db.collection("Categories").doc(categoryId);
-      batch.set(categoryRef, { id: categoryId, name: category });
-
-      for (const [subcategory, products] of Object.entries(subcategories)) {
-        const subcategoryId = formatString(subcategory);
-        const subcategoryRef = categoryRef
-          .collection("SubCategories")
-          .doc(subcategoryId);
-        batch.set(subcategoryRef, { id: subcategoryId, name: subcategory });
-
-        for (const productGroup of products) {
-          const productTypeId = formatString(productGroup.name);
-          const productTypeRef = subcategoryRef
-            .collection("Products")
-            .doc(productTypeId);
-
-          const productsArray = productGroup.products.map((product) => ({
-            name: product.name,
-            imageUrl: product.imageUrl || null,
-          }));
-
-          batch.set(productTypeRef, {
-            id: productTypeId,
-            name: productGroup.name,
-            products: productsArray,
-          });
-        }
-      }
-    }
-
-    await batch.commit();
-    res.status(201).send("✅ Products added successfully.");
-  } catch (err) {
-    console.error("❌ Error adding products:", err);
-    res.status(500).send("Server error.");
-  }
-});
 
 // ✅ Fetch All Products from Firestore
 router.get("/", async (req, res) => {
@@ -86,17 +44,26 @@ router.get("/", async (req, res) => {
         for (const productDoc of productsSnapshot.docs) {
           const productData = productDoc.data();
 
+          // Ensure allProducts is an array, even if it's undefined in Firestore
+          const allProducts = Array.isArray(productData.allProducts)
+            ? productData.allProducts.map((product) => ({
+                name: product.name || "", // Ensure each product has a title
+                productImageUrl: product.productImageUrl || "", // Fetch imageUrl
+                productImages: product.productImages || [], // Fetch productImages
+              }))
+            : []; // Default to an empty array if allProducts is undefined
+
           productList.push({
             id: productDoc.id,
-            category: categoryData.name,
+            category: categoryData.categoryTitle || categoryData.name, // Fallback to name if categoryTitle is missing
+            categoryImage: categoryData.categoryImage || "", // Fetch categoryImage
             subcategory: subcategoryData.name,
-            name: productData.name,
-            products: productData.products || [],
+            title: productData.title,
+            allProducts: allProducts, // Include mapped allProducts array
           });
         }
       }
     }
-
     console.log("✅ Products fetched successfully.");
     res.json(productList);
   } catch (err) {
@@ -108,13 +75,12 @@ router.get("/", async (req, res) => {
 // ✅ Fetch a Specific Product by ID
 router.get("/:category/:subcategory/:product", async (req, res) => {
   try {
-    const { category, subcategory, product, productId } = req.params;
+    const { category, subcategory, product } = req.params;
 
     console.log("🔍 Fetching product from Firestore...");
     console.log("Category:", category);
     console.log("Subcategory:", subcategory);
     console.log("Product:", product);
-    console.log("Product ID:", productId);
 
     // Format the IDs to match Firestore document IDs
     const formattedCategoryId = formatString(category);
@@ -144,10 +110,244 @@ router.get("/:category/:subcategory/:product", async (req, res) => {
       category,
       subcategory,
       name: productData.name,
-      products: productData.products || [],
+      allProducts: productData.allProducts || [],
     });
   } catch (err) {
     console.error("❌ Error fetching product:", err);
+    res.status(500).send("Server error.");
+  }
+});
+
+// ✅ Edit a Category
+router.put("/category/:category", async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { categoryTitle, categoryImage } = req.body;
+
+    // Format the category title to match the Firestore document ID
+    const formattedCategoryId = formatString(categoryTitle);
+
+    console.log("Formatted Category ID:", formattedCategoryId); // Debugging
+
+    // Check if the category document exists
+    const categoryDoc = await db
+      .collection("Categories")
+      .doc(category) // Use the original category ID from the URL
+      .get();
+
+    if (!categoryDoc.exists) {
+      console.error("❌ Category not found:", category);
+      return res.status(404).send("Category not found.");
+    }
+
+    // If the category title has changed, update the document ID
+    if (category !== formattedCategoryId) {
+      // Create a new document with the updated ID
+      await db
+        .collection("Categories")
+        .doc(formattedCategoryId)
+        .set({ categoryTitle, categoryImage });
+
+      // Delete the old document
+      await db.collection("Categories").doc(category).delete();
+    } else {
+      // Update the existing document
+      await db
+        .collection("Categories")
+        .doc(category)
+        .update({ categoryTitle, categoryImage });
+    }
+
+    console.log("✅ Category updated successfully:", formattedCategoryId);
+    res.status(200).send("Category updated successfully.");
+  } catch (err) {
+    console.error("❌ Error updating category:", err);
+    res.status(500).send("Server error.");
+  }
+});
+
+// ✅ Update a Product
+router.put(
+  "/category/:category/subcategory/:subcategory/product/:product",
+  async (req, res) => {
+    try {
+      const { category, subcategory, product } = req.params;
+      const updatedProductData = req.body;
+
+      // Format the IDs to match Firestore document IDs
+      const formattedCategoryId = formatString(category);
+      const formattedSubcategoryId = formatString(subcategory);
+      const formattedProductId = formatString(product);
+
+      // Update the product document in Firestore
+      await db
+        .collection("Categories")
+        .doc(formattedCategoryId)
+        .collection("SubCategories")
+        .doc(formattedSubcategoryId)
+        .collection("Products")
+        .doc(formattedProductId)
+        .update(updatedProductData);
+
+      res.status(200).send("Product updated successfully.");
+    } catch (err) {
+      console.error("❌ Error updating product:", err);
+      res.status(500).send("Server error.");
+    }
+  }
+);
+
+// ✅ Delete a Category
+router.delete("/category/:category", async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    const formattedCategoryId = formatString(category);
+
+    await db.collection("Categories").doc(formattedCategoryId).delete();
+
+    res.status(200).send("Category deleted successfully.");
+  } catch (err) {
+    console.error("❌ Error deleting category:", err);
+    res.status(500).send("Server error.");
+  }
+});
+
+// ✅ Delete a Subcategory
+router.delete(
+  "/category/:category/subcategory/:subcategory",
+  async (req, res) => {
+    try {
+      const { category, subcategory } = req.params;
+
+      // Format the IDs to match Firestore document IDs
+      const formattedCategoryId = formatString(category);
+      const formattedSubcategoryId = formatString(subcategory);
+
+      // Delete the subcategory document from Firestore
+      await db
+        .collection("Categories")
+        .doc(formattedCategoryId)
+        .collection("SubCategories")
+        .doc(formattedSubcategoryId)
+        .delete();
+
+      res.status(200).send("Subcategory deleted successfully.");
+    } catch (err) {
+      console.error("❌ Error deleting subcategory:", err);
+      res.status(500).send("Server error.");
+    }
+  }
+);
+
+// ✅ Delete a Product
+router.delete(
+  "/category/:category/subcategory/:subcategory/product/:product",
+  async (req, res) => {
+    try {
+      const { category, subcategory, product } = req.params;
+
+      // Format the IDs to match Firestore document IDs
+      const formattedCategoryId = formatString(category);
+      const formattedSubcategoryId = formatString(subcategory);
+      const formattedProductId = formatString(product);
+
+      // Delete the product document from Firestore
+      await db
+        .collection("Categories")
+        .doc(formattedCategoryId)
+        .collection("SubCategories")
+        .doc(formattedSubcategoryId)
+        .collection("Products")
+        .doc(formattedProductId)
+        .delete();
+
+      res.status(200).send("Product deleted successfully.");
+    } catch (err) {
+      console.error("❌ Error deleting product:", err);
+      res.status(500).send("Server error.");
+    }
+  }
+);
+
+// ✅ Bulk Delete Categories, Subcategories, or Products
+router.delete("/bulk", async (req, res) => {
+  try {
+    const { ids, type } = req.body;
+
+    // Validate inputs
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).send("Invalid IDs provided.");
+    }
+
+    if (!type || !["category", "subcategory", "product"].includes(type)) {
+      return res.status(400).send("Invalid type provided.");
+    }
+
+    // Validate each ID in the array
+    for (const id of ids) {
+      if (!id || typeof id !== "string") {
+        return res.status(400).send(`Invalid ID: ${id}`);
+      }
+    }
+
+    // Delete categories
+    if (type === "category") {
+      for (const categoryId of ids) {
+        const formattedCategoryId = formatString(categoryId);
+        await db.collection("Categories").doc(formattedCategoryId).delete();
+      }
+    }
+
+    // Delete subcategories
+    if (type === "subcategory") {
+      for (const subcategoryId of ids) {
+        const [categoryId, subcategoryIdOnly] = subcategoryId.split("::");
+        if (!categoryId || !subcategoryIdOnly) {
+          return res
+            .status(400)
+            .send(`Invalid subcategory ID: ${subcategoryId}`);
+        }
+
+        const formattedCategoryId = formatString(categoryId);
+        const formattedSubcategoryId = formatString(subcategoryIdOnly);
+
+        await db
+          .collection("Categories")
+          .doc(formattedCategoryId)
+          .collection("SubCategories")
+          .doc(formattedSubcategoryId)
+          .delete();
+      }
+    }
+
+    // Delete products
+    if (type === "product") {
+      for (const productId of ids) {
+        const [categoryId, subcategoryId, productIdOnly] =
+          productId.split("::");
+        if (!categoryId || !subcategoryId || !productIdOnly) {
+          return res.status(400).send(`Invalid product ID: ${productId}`);
+        }
+
+        const formattedCategoryId = formatString(categoryId);
+        const formattedSubcategoryId = formatString(subcategoryId);
+        const formattedProductId = formatString(productIdOnly);
+
+        await db
+          .collection("Categories")
+          .doc(formattedCategoryId)
+          .collection("SubCategories")
+          .doc(formattedSubcategoryId)
+          .collection("Products")
+          .doc(formattedProductId)
+          .delete();
+      }
+    }
+
+    res.status(200).send("Bulk deletion successful.");
+  } catch (err) {
+    console.error("❌ Error during bulk deletion:", err);
     res.status(500).send("Server error.");
   }
 });

@@ -8,9 +8,11 @@
     "@heroui/alert": "^2.2.16",
     "@heroui/breadcrumbs": "^2.2.12",
     "@heroui/button": "^2.2.16",
+    "@heroui/image": "^2.2.10",
     "@heroui/react": "^2.7.5",
     "@heroui/system": "^2.4.12",
     "@heroui/theme": "^2.4.12",
+    "@iconify/icons-mdi": "^1.2.48",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -59,6 +61,7 @@
     ]
   },
   "devDependencies": {
+    "@iconify/react": "^5.2.0",
     "@types/axios": "^0.9.36",
     "@types/react-slick": "^0.23.13",
     "tailwindcss": "^3.4.17"

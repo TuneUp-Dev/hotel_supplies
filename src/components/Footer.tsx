@@ -11,12 +11,14 @@ const Footer = () => {
       className="bg-[#F0F0F0] text-gray-700 w-full xl:max-w-[1440px] mx-auto px-6 md:px-10 lg:px-14 xl:px-10 -mt-10 md:-mt-12 lg:-mt-16 xl:-mt-20 pt-16 md:pt-20 lg:pt-28 xl:pt-32 pb-6 md:pb-8 lg:pb-10 xl:pb-12 satoshi"
     >
       <div className="xl:ml-12 mx-auto flex flex-col lg:flex-row justify-start lg:justify-between items-start lg:items-center gap-y-7 lg:gap-y-0 lg:gap-x-20 xl:gap-x-40">
-        {/* Left Section */}
+        {/* Left About Content */}
         <div className="">
           <p className="text-[11px] md:text-[12px] lg:text-[12px] xl:text-[14px] md:w-[350px] lg:w-[215px] xl:w-[248px] text-black/60">
             We have clothes that suits your style and which you’re proud to
             wear. From women to men.
           </p>
+
+          {/* Social Links */}
           <div className="flex gap-1 md:gap-2 lg:gap-3 xl:gap-4 mt-1.5 md:mt-2 lg:mt-3 xl:mt-4">
             <a
               href="https://twitter.com"
@@ -69,7 +71,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Links Section */}
+        {/* Navigation Links */}
         <div className="w-full mx-auto grid grid-cols-2 md:grid-cols-4 gap-y-5 md:gap-y-0">
           <div className="">
             <h3 className="text-black font-medium text-[12px] md:text-[13px] lg:text-[14px] xl:text-[16px]">
