@@ -87,19 +87,22 @@ const Cart = () => {
     setIsSending(true);
 
     try {
-      const response = await fetch("http://localhost:5003/send-enquiry", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          contactNumber,
-          message,
-          cartItems,
-        }),
-      });
+      const response = await fetch(
+        "hotel-supplies-backend.vercel.app/send-enquiry",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            contactNumber,
+            message,
+            cartItems,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -29,7 +29,7 @@ const OurProducts = () => {
     setIsLoading(true);
     try {
       const response = await axios.get<Product[]>(
-        "http://localhost:5003/api/products"
+        "hotel-supplies-backend.vercel.app/api/products"
       );
       console.log("API Response:", response.data);
 
