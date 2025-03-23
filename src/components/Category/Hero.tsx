@@ -204,7 +204,7 @@ const Hero: React.FC = () => {
     try {
       console.log("Fetching products from backend...");
       const response = await axios.get<Subtopic[]>(
-        "http://localhost:5003/api/products"
+        "https://hotel-supplies-delta.vercel.app/api/products"
       );
       const fetchedSubtopics = response.data;
       console.log("Fetched subtopics:", fetchedSubtopics);
