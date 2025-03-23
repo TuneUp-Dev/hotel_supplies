@@ -19,6 +19,7 @@ import Cancel from "../assets/cancel.svg";
 import Edit from "../assets/edit.svg";
 import Delete from "../assets/delete2.svg";
 import { Popconfirm } from "antd";
+import { Spinner } from "@heroui/react";
 
 interface Product {
   id: string;
@@ -64,6 +65,7 @@ interface UploadResponse {
 }
 
 const ProductList: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [alert, setAlert] = useState<{
     message: string;
     visible: boolean;
@@ -97,6 +99,7 @@ const ProductList: React.FC = () => {
   }
 
   const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get<Product[]>(
         "https://hotel-supplies-backend.vercel.app/api/products"
@@ -105,6 +108,8 @@ const ProductList: React.FC = () => {
       setGroupedProducts(groupProducts(response.data));
     } catch (error) {
       console.error("Error fetching products:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -462,6 +467,16 @@ const ProductList: React.FC = () => {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+          <Spinner color="default" size="lg" className="brightness-0" />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
