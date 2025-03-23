@@ -45,7 +45,7 @@ export const ChevronIcon = (props: IconSvgProps) => {
 type Product = {
   id: string;
   name: string;
-  imageUrl: string;
+  productImageUrl: string;
 };
 
 type Subtopic = {
@@ -214,8 +214,8 @@ const Hero: React.FC = () => {
         ...subtopic,
         products: subtopic.products.map((product) => ({
           ...product,
-          imageUrl:
-            product.imageUrl ||
+          productImageUrl:
+            product.productImageUrl ||
             "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk",
         })),
       }));
@@ -718,7 +718,7 @@ const Hero: React.FC = () => {
                       onClick={() => handleProductClick(product)}
                     >
                       <img
-                        src={product.imageUrl}
+                        src={product.productImageUrl}
                         alt={product.name}
                         className="w-full h-full object-cover rounded-[20px]"
                       />

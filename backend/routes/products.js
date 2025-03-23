@@ -48,7 +48,7 @@ router.get("/", async (req, res) => {
             ? productData.allProducts.map((product) => ({
                 id: product.id || "",
                 name: product.name || "",
-                imageUrl: product.imageUrl || "",
+                productImageUrl: product.productImageUrl || "",
               }))
             : [];
 
