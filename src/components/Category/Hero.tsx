@@ -204,14 +204,25 @@ const Hero: React.FC = () => {
     try {
       console.log("Fetching products from backend...");
       const response = await axios.get<Subtopic[]>(
-        "hotel-supplies-backend.vercel.app/api/products"
+        "https://hotel-supplies-delta.vercel.app/api/products"
       );
       const fetchedSubtopics = response.data;
       console.log("Fetched subtopics:", fetchedSubtopics);
 
+      // Validate and transform the data
+      const validatedSubtopics = fetchedSubtopics.map((subtopic) => ({
+        ...subtopic,
+        products: subtopic.products.map((product) => ({
+          ...product,
+          imageUrl:
+            product.imageUrl ||
+            "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk",
+        })),
+      }));
+
       const organizedData: Record<string, Record<string, Subtopic[]>> = {};
 
-      fetchedSubtopics.forEach((subtopic) => {
+      validatedSubtopics.forEach((subtopic) => {
         const { category, subcategory } = subtopic;
 
         if (!organizedData[category]) {

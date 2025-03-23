@@ -39,17 +39,37 @@ const Cart = () => {
   }>({ message: "", visible: false });
   const navigate = useNavigate();
 
+  const isValidImageUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = event.target as HTMLImageElement;
+    target.src = CartIcon;
+  };
+
   useEffect(() => {
     const storedCartItems = JSON.parse(
       localStorage.getItem("cartItems") || "[]"
     ) as CartItem[];
-    setCartItems(storedCartItems);
 
-    console.log("Cart Items on Load:", storedCartItems);
-    console.log(
-      "Cart Item IDs:",
-      storedCartItems.map((item) => item.id)
-    );
+    const validatedCartItems = storedCartItems.map((item) => ({
+      ...item,
+      imageUrl: isValidImageUrl(
+        item.imageUrl ||
+          "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk"
+      )
+        ? item.imageUrl
+        : CartIcon,
+    }));
+
+    setCartItems(validatedCartItems);
+    console.log("Cart Items on Load:", validatedCartItems);
   }, []);
 
   const handleRemoveItem = (index: number) => {
@@ -88,7 +108,7 @@ const Cart = () => {
 
     try {
       const response = await fetch(
-        "hotel-supplies-backend.vercel.app/send-enquiry",
+        "https://hotel-supplies-backend.vercel.app/send-enquiry",
         {
           method: "POST",
           headers: {
@@ -152,7 +172,16 @@ const Cart = () => {
         const storedCartItems = JSON.parse(
           localStorage.getItem("cartItems") || "[]"
         ) as CartItem[];
-        setCartItems(storedCartItems);
+
+        // Validate image URLs and add fallback if necessary
+        const validatedCartItems = storedCartItems.map((item) => ({
+          ...item,
+          imageUrl: isValidImageUrl(item.imageUrl || "")
+            ? item.imageUrl
+            : CartIcon,
+        }));
+
+        setCartItems(validatedCartItems);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -217,6 +246,7 @@ const Cart = () => {
                       src={item.imageUrl || CartIcon}
                       alt=""
                       className="w-full h-full object-cover"
+                      onError={handleImageError} // Handle image loading errors
                     />
                   </div>
 

@@ -19,6 +19,7 @@ import Cancel from "../assets/cancel.svg";
 import Edit from "../assets/edit.svg";
 import Delete from "../assets/delete2.svg";
 import { Popconfirm } from "antd";
+import { Spinner } from "@heroui/react";
 
 interface Product {
   id: string;
@@ -64,6 +65,7 @@ interface UploadResponse {
 }
 
 const ProductList: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [alert, setAlert] = useState<{
     message: string;
     visible: boolean;
@@ -97,14 +99,17 @@ const ProductList: React.FC = () => {
   }
 
   const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get<Product[]>(
-        "hotel-supplies-backend.vercel.app/api/products"
+        "https://hotel-supplies-backend.vercel.app/api/products"
       );
       setProducts(response.data);
       setGroupedProducts(groupProducts(response.data));
     } catch (error) {
       console.error("Error fetching products:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -121,7 +126,7 @@ const ProductList: React.FC = () => {
       }
 
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
           productToDelete.category
         )}/subcategory/${encodeURIComponent(
           productToDelete.subcategory
@@ -147,7 +152,7 @@ const ProductList: React.FC = () => {
 
       await axios.request({
         method: "DELETE",
-        url: "hotel-supplies-backend.vercel.app/api/products/bulk",
+        url: "https://hotel-supplies-backend.vercel.app/api/products/bulk",
         data: { ids: selectedIds, type },
       });
 
@@ -198,7 +203,7 @@ const ProductList: React.FC = () => {
       try {
         if (editEntityType === "category") {
           await axios.put(
-            `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               selectedProduct.category
             )}`,
             {
@@ -216,7 +221,7 @@ const ProductList: React.FC = () => {
           }
 
           await axios.put(
-            `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               productToUpdate.category
             )}/subcategory/${encodeURIComponent(
               productToUpdate.subcategory
@@ -295,7 +300,7 @@ const ProductList: React.FC = () => {
   const handleDeleteCategory = async (category: string) => {
     try {
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${category}`
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${category}`
       );
 
       if (selectedCategory === category) {
@@ -314,7 +319,7 @@ const ProductList: React.FC = () => {
   ) => {
     try {
       await axios.delete(
-        `hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
           category
         )}/subcategory/${encodeURIComponent(subcategory)}`
       );
@@ -361,7 +366,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "hotel-supplies-backend.vercel.app/api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {
@@ -416,7 +421,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "hotel-supplies-backend.vercel.app/api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {
@@ -462,6 +467,16 @@ const ProductList: React.FC = () => {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="fixed z-[9999] top-0 left-0 w-screen h-screen bg-white flex justify-center items-center">
+          <Spinner color="default" size="lg" className="brightness-0" />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

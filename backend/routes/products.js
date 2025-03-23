@@ -44,22 +44,21 @@ router.get("/", async (req, res) => {
         for (const productDoc of productsSnapshot.docs) {
           const productData = productDoc.data();
 
-          // Ensure allProducts is an array, even if it's undefined in Firestore
           const allProducts = Array.isArray(productData.allProducts)
             ? productData.allProducts.map((product) => ({
-                name: product.name || "", // Ensure each product has a title
-                productImageUrl: product.productImageUrl || "", // Fetch imageUrl
-                productImages: product.productImages || [], // Fetch productImages
+                id: product.id || "",
+                name: product.name || "",
+                imageUrl: product.imageUrl || "",
               }))
-            : []; // Default to an empty array if allProducts is undefined
+            : [];
 
           productList.push({
             id: productDoc.id,
-            category: categoryData.categoryTitle || categoryData.name, // Fallback to name if categoryTitle is missing
-            categoryImage: categoryData.categoryImage || "", // Fetch categoryImage
+            category: categoryData.categoryTitle,
+            categoryImage: categoryData.categoryImage || "",
             subcategory: subcategoryData.name,
-            title: productData.title,
-            allProducts: allProducts, // Include mapped allProducts array
+            name: productData.name || productData.title,
+            products: allProducts,
           });
         }
       }

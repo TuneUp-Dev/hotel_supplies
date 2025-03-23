@@ -57,7 +57,7 @@ const ProductForm: React.FC = () => {
 
     try {
       const response = await axios.post<UploadResponse>(
-        "hotel-supplies-backend.vercel.app/api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -199,7 +199,7 @@ const ProductForm: React.FC = () => {
       };
 
       await axios.post(
-        "hotel-supplies-backend.vercel.app/api/categories",
+        "https://hotel-supplies-backend.vercel.app/api/categories",
         payload
       );
 
