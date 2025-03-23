@@ -85,7 +85,6 @@ const Hero: React.FC = () => {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Trigger subtopic on page load
   useEffect(() => {
     console.log("Category:", category);
     console.log("Subcategory:", subcategory);
@@ -180,31 +179,27 @@ const Hero: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // Utility function to format the subtopic name
   const formatSubtopicName = (str: string) => {
     return str
-      .replace(/--/g, " / ") // Replace double hyphens with a slash
-      .replace(/-/g, " ") // Replace single hyphens with spaces
-      .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize the first letter of each word
+      .replace(/--/g, " / ")
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  // Define formatString in the global scope of the component
   const formatString = (str: string) =>
     str
       .toLowerCase()
-      .replace(/\s+/g, "-") // Replace spaces with hyphens
-      .replace(/\//g, "@") // Replace slashes with hyphens
-      .replace(/[^a-z0-9-@]/g, ""); // Remove any non-alphanumeric characters except hyphens and @
+      .replace(/\s+/g, "-")
+      .replace(/\//g, "@")
+      .replace(/[^a-z0-9-@]/g, "");
 
-  // Function to format text like breadcrumb text
-  const toCamelCase = (text: string) => {
+  const toPascalCase = (text: string) => {
     return text
-      .replace(/--/g, " & ") // Replace double hyphens with a slash
-      .replace(/-/g, " ") // Replace single hyphens with spaces
-      .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize the first letter of each word
+      .replace(/--/g, " & ")
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  // Fetch products when the component mounts or the filter changes
   const fetchProducts = async () => {
     try {
       console.log("Fetching products from backend...");
@@ -214,7 +209,6 @@ const Hero: React.FC = () => {
       const fetchedSubtopics = response.data;
       console.log("Fetched subtopics:", fetchedSubtopics);
 
-      // Organize products by category and subcategory
       const organizedData: Record<string, Record<string, Subtopic[]>> = {};
 
       fetchedSubtopics.forEach((subtopic) => {
@@ -241,11 +235,9 @@ const Hero: React.FC = () => {
     fetchProducts();
   }, [category, subcategory, subtopic]);
 
-  // Set products based on URL parameters after productData is populated
   useEffect(() => {
     if (!isLoading && Object.keys(productData).length > 0) {
       if (category) {
-        // Format the category to match the keys in productData
         const formattedCategory = Object.keys(productData).find(
           (key) => formatString(key) === formatString(category)
         );
@@ -254,7 +246,6 @@ const Hero: React.FC = () => {
           const categoryData = productData[formattedCategory];
 
           if (subcategory) {
-            // If subcategory is provided, find and display its products
             const formattedSubcategory = Object.keys(categoryData).find(
               (key) => formatString(key) === formatString(subcategory)
             );
@@ -263,7 +254,6 @@ const Hero: React.FC = () => {
               const subcategoryData = categoryData[formattedSubcategory];
 
               if (subtopic) {
-                // If subtopic is provided, find and display its products
                 const selectedSubtopic = subcategoryData.find(
                   (st) => formatString(st.name) === formatString(subtopic)
                 );
@@ -277,7 +267,6 @@ const Hero: React.FC = () => {
                   console.error("Subtopic not found in data:", subtopic);
                 }
               } else {
-                // If only subcategory is provided, display all products under that subcategory
                 console.log(
                   "Displaying all products for subcategory:",
                   subcategory
@@ -291,7 +280,6 @@ const Hero: React.FC = () => {
               console.error("Subcategory not found in data:", subcategory);
             }
           } else {
-            // If only category is provided, display all products under that category
             console.log("Displaying all products for category:", category);
             const allProducts = Object.values(categoryData).flatMap(
               (subcategoryData) => subcategoryData.flatMap((st) => st.products)
@@ -302,7 +290,6 @@ const Hero: React.FC = () => {
           console.error("Category not found in data:", category);
         }
       } else {
-        // If no category, subcategory, or subtopic is provided, display all products
         console.log("Displaying all products");
         const allProducts = Object.values(productData).flatMap((categoryData) =>
           Object.values(categoryData).flatMap((subcategoryData) =>
@@ -324,14 +311,12 @@ const Hero: React.FC = () => {
     );
   }
 
-  // Sort products based on the selected sort option
   const sortedProducts = [...products].sort((a, b) => {
     if (sortBy === "alphabetical") return a.name.localeCompare(b.name);
-    if (sortBy === "price") return 0; // Add price logic if available
-    return 0; // Default: most popular (no sorting)
+    if (sortBy === "price") return 0;
+    return 0;
   });
 
-  // Pagination logic
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = sortedProducts.slice(
@@ -389,7 +374,6 @@ const Hero: React.FC = () => {
       );
     }
 
-    // cursor is the default item
     return (
       <button
         key={key}
@@ -402,12 +386,10 @@ const Hero: React.FC = () => {
     );
   };
 
-  // Function to generate breadcrumb paths
   const generateBreadcrumbPaths = () => {
     const paths = location.pathname.split("/").filter((path) => path !== "");
     const breadcrumbs = [];
 
-    // Add "Home" as the first breadcrumb
     breadcrumbs.push({
       label: "Home",
       href: "/",
@@ -417,7 +399,7 @@ const Hero: React.FC = () => {
     for (let i = 0; i < paths.length; i++) {
       currentPath += `/${paths[i]}`;
       breadcrumbs.push({
-        label: toCamelCase(paths[i]),
+        label: toPascalCase(paths[i]),
         href: currentPath,
       });
     }
@@ -427,14 +409,11 @@ const Hero: React.FC = () => {
 
   const breadcrumbs = generateBreadcrumbPaths();
 
-  // Function to handle product click and navigate to product page
   const handleProductClick = (product: Product) => {
-    // Find the product's category, subcategory, and subtopic from the productData
     let foundCategory: string | undefined;
     let foundSubcategory: string | undefined;
     let foundSubtopic: string | undefined;
 
-    // Iterate through the productData to find the product's hierarchy
     for (const [categoryKey, subcategories] of Object.entries(productData)) {
       for (const [subcategoryKey, subtopics] of Object.entries(subcategories)) {
         const subtopicWithProduct = subtopics.find((st) =>
@@ -448,11 +427,10 @@ const Hero: React.FC = () => {
           break;
         }
       }
-      if (foundCategory) break; // Exit outer loop if found
+      if (foundCategory) break;
     }
 
     if (foundCategory && foundSubcategory && foundSubtopic) {
-      // Construct the URL using the found hierarchy
       const productName = formatString(product.name);
       const url = `/${formatString(foundCategory)}/${formatString(
         foundSubcategory
@@ -517,7 +495,7 @@ const Hero: React.FC = () => {
                     onClick={() => toggleSection(category)}
                   >
                     <h3 className="satoshi text-[16px] font-semibold text-black/60">
-                      {toCamelCase(category)}
+                      {toPascalCase(category)}
                     </h3>
                     {openSections[category] ? (
                       <ChevronDownIcon className="min-h-5 max-h-5 min-w-5 max-w-5 text-black/60" />
@@ -535,7 +513,7 @@ const Hero: React.FC = () => {
                               onClick={() => toggleSection(subcategory)}
                             >
                               <h4 className="satoshi text-[15px] font-semibold text-black">
-                                {toCamelCase(subcategory)}
+                                {toPascalCase(subcategory)}
                               </h4>
                             </div>
 
@@ -555,7 +533,7 @@ const Hero: React.FC = () => {
                                     setProducts(subtopic.products);
                                   }}
                                 >
-                                  {toCamelCase(subtopic.name)}{" "}
+                                  {toPascalCase(subtopic.name)}{" "}
                                   <ChevronRightIcon className="min-h-4 max-h-4 min-w-4 max-w-4" />
                                 </li>
                               ))}
@@ -649,8 +627,8 @@ const Hero: React.FC = () => {
             </div>
           </div>
 
+          {/* Total Products Count and Sort Options */}
           <div className="w-full max-w-full">
-            {/* Total Products Count and Sort Options */}
             <div className=" flex justify-between items-center mb-4">
               <h1 className="satoshi text-[24px] md:text-[26px] xl:text-[32px] font-bold">
                 {subtopic ? `${formatSubtopicName(subtopic)}` : "All Products"}
@@ -674,7 +652,6 @@ const Hero: React.FC = () => {
                     >
                       {options.find((opt) => opt.key === selected)?.label}
 
-                      {/* Animated Arrow */}
                       <img
                         src={Arrow}
                         alt=""
@@ -743,7 +720,6 @@ const Hero: React.FC = () => {
               )}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-between items-center w-full mt-20">
                 <Button

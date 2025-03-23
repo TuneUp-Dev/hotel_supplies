@@ -62,7 +62,7 @@ const Hero = () => {
           </span>
         </div>
 
-        {/* Over Images */}
+        {/* Floating Images */}
         <div className="pop_images absolute -z-10 md:w-[768px] lg:w-[1024px] xl:w-[1280px] mx-auto top-[130px] md:top-[160px] lg:top-[260px] xl:top-[270px] left-0 right-0 flex flex-col justify-start gap-10 md:gap-10 lg:gap-20 xl:gap-24">
           <span className="flex justify-between items-center px-8 md:px-20 lg:px-28 xl:px-36">
             <img

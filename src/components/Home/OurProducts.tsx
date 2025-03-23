@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/react";
 import axios from "axios";
 
-// Interface for Product Data
 interface Product {
   id: string;
   category: string;
@@ -15,7 +14,6 @@ interface Product {
   imageUrl: string;
 }
 
-// Interface for Category Data
 interface Category {
   id: string;
   title: string;
@@ -27,7 +25,6 @@ const OurProducts = () => {
   const [products, setProducts] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch all categories and their SubCollections from the backend API
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
@@ -36,10 +33,8 @@ const OurProducts = () => {
       );
       console.log("API Response:", response.data);
 
-      // Transform the API response into the required format
       const transformedProducts: Category[] = response.data.reduce(
         (acc: Category[], product: Product) => {
-          // Find or create the category in the accumulator
           let category = acc.find((cat) => cat.title === product.category);
           if (!category) {
             category = {
@@ -51,7 +46,6 @@ const OurProducts = () => {
             acc.push(category);
           }
 
-          // Add the subcategory as a feature
           if (
             product.subcategory &&
             !category.features.includes(product.subcategory)
@@ -77,7 +71,6 @@ const OurProducts = () => {
     fetchProducts();
   }, []);
 
-  // Function to generate dynamic links
   const generateLink = (featureName: string | undefined) => {
     if (!featureName) {
       console.warn("Undefined or null featureName passed to generateLink");
@@ -102,7 +95,6 @@ const OurProducts = () => {
         id="products"
         className="w-full md:w-[720px] lg:w-[1024px] xl:w-[1280px] mx-auto flex flex-col justify-center items-center gap-y-2.5 md:gap-y-4 mt-12 md:mt-16 lg:mt-20 xl:mt-28"
       >
-        {/* Section Title */}
         <h1 className="outfit font-medium text-[26px] md:text-[32px] lg:text-[39px] text-black text-center">
           Our Products Range
         </h1>
@@ -123,14 +115,13 @@ const OurProducts = () => {
                 background: "linear-gradient(195deg, white, white, #666666)",
               }}
             >
-              {/* Inner Container */}
               <div
                 className="w-full h-full bg-gray-100 rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] overflow-hidden"
                 style={{
                   position: "relative",
                 }}
               >
-                {/* Product Image */}
+                {/* Product Images */}
                 <div
                   className="w-full overflow-hidden"
                   style={{
@@ -141,7 +132,7 @@ const OurProducts = () => {
                   <img src={product.imageUrl} alt={""} />
                 </div>
 
-                {/* Product Details */}
+                {/* Product's Details */}
                 <div
                   className="absolute bottom-0 w-full min-h-[200px] max-h-[200px] md:min-h-[220px] md:max-h-[220px] lg:min-h-[260px] lg:max-h-[260px] xl:min-h-[320px] xl:max-h-[320px] p-3 md:p-5 lg:p-6 xl:p-8 pt-3 lg:pt-4 xl:pt-6 pb-1 lg:pb-2 xl:pb-4 bg-white rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] xl:rounded-tr-[60px] xl:rounded-br-[60px] xl:rounded-bl-[60px] flex flex-col justify-start items-start gap-y-2 lg:gap-y-3 xl:gap-y-4"
                   style={{
@@ -176,13 +167,11 @@ const OurProducts = () => {
                     })}
                   </ul>
 
-                  {/* View Details Button */}
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[100px] md:w-[130px] lg:w-[150px] xl:w-[176px]">
                     <Button className="outfit font-normal text-[10px] md:text-[11px] lg:text-[13px] xl:text-[16px] border-[0.9px] bg-white border-black text-black rounded-[44px] w-[80px] md:w-[105px] lg:w-[110px] xl:w-[140px] max-h-[28px] md:min-h-[32px] lg:min-h-[40px] xl:min-h-[50px] overflow-hidden">
                       View Details
                     </Button>
 
-                    {/* Arrow Container */}
                     <span className="bg-[#003F2E] absolute top-0 right-0 md:right-2 lg:right-3 xl:right-1 rounded-full w-[28px] md:w-[32px] lg:w-[40px] xl:w-[50px] h-[28px] md:h-[32px] lg:h-[40px] xl:h-[50px] flex justify-center items-center overflow-visible">
                       <img
                         src={ArrowTop}

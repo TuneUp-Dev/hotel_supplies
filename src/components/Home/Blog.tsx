@@ -55,8 +55,7 @@ const Blog = () => {
         </p>
 
         <div className="mx-auto w-full md:w-[90vw] lg:w-[980px] xl:w-[1280px] py-4 z-50 relative mt-0 md:mt-1 lg:mt-2 xl:mt-6">
-          {/* Slider */}
-
+          {/* Images Slider */}
           <div className="flex flex-col lg:flex-row justify-start lg:justify-between items-start lg:items-start">
             {blog.map((blog) => (
               <div key={blog.id} className="py-3 md:py-4 lg:py-5 lg:px-2">

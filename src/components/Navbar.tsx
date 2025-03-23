@@ -43,7 +43,7 @@ const Navbar = () => {
           </h1>
         </div>
 
-        {/* Mobile Menu Toggle Button */}
+        {/* Small Screen Menubar Toggle Button */}
         <div className="md:hidden w-full px-1 flex justify-between items-center">
           <button onClick={toggleMobileMenu} className="text-black">
             {isMobileMenuOpen ? (
@@ -63,7 +63,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Desktop Menu */}
+        {/* Large Screen navigation Links */}
         <ul className="hidden md:flex list-none inter-light justify-between items-center md:gap-x-[20px] lg:gap-x-[30px] xl:gap-x-[50px] md:text-[12px] lg:text-[14px] xl:text-[16px]">
           <li>
             <button onClick={() => scrollToSection("home")}>Home</button>
@@ -86,7 +86,6 @@ const Navbar = () => {
           </li>
         </ul>
 
-        {/* Contact Button (Hidden on Mobile) */}
         <div className="hidden md:block md:w-[140px] lg:w-[150px] xl:w-[210px]">
           <a href="#contact">
             <Button className="airbnb font-light md:text-[11px] lg:text-[14px] xl:text-[16px] bg-black text-white rounded-[62px] md:w-[140px] lg:min-w-[150px] xl:min-w-[210px] md:h-[35px] lg:h-[40px] xl:min-h-[52px]">
@@ -96,7 +95,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay and Content */}
+      {/* Small Screen Menubar and Contents */}
       <>
         {isMobileMenuOpen && (
           <div
@@ -142,7 +141,6 @@ const Navbar = () => {
               </li>
             </ul>
 
-            {/* Contact Button for Mobile */}
             <div className="mt-8">
               <a href="#contact">
                 <Button className="airbnb font-light text-[14px] md:text-[15px] bg-black text-white rounded-[62px] w-full md:w-auto md:min-w-[100px] lg:min-w-[150px] xl:min-w-[210px] min-h-[30px] lg:min-h-[40px] xl:min-h-[52px]">
