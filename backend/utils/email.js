@@ -6,7 +6,6 @@ const validateEmail = (email) => {
   return regex.test(email);
 };
 
-// Create reusable transporter object
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -15,7 +14,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Generic function to send email
 const sendEmail = async (to, subject, text) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,

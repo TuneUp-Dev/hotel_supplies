@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Alert } from "@heroui/react";
+import { Alert, Button, Input, Card } from "@heroui/react";
 import ProductForm from "./ProductForm";
 import ProductList from "./ProductList";
+import Logout from "../assets/logout.svg";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -21,6 +23,19 @@ const Dashboard = () => {
   }, []);
 
   const handleLogin = () => {
+    if (!username || !password) {
+      setNotification({
+        message: "Please fill in all fields",
+        visible: true,
+        type: "warning",
+      });
+      setTimeout(
+        () => setNotification({ message: "", visible: false, type: "success" }),
+        3000
+      );
+      return;
+    }
+
     const userName = "admin";
     const userPassword = "admin";
 
@@ -73,6 +88,8 @@ const Dashboard = () => {
                 ? "danger"
                 : notification.message.includes("Failed")
                 ? "danger"
+                : notification.message === "Logout successful!"
+                ? "success"
                 : notification.message === "Login successful!"
                 ? "success"
                 : "warning"
@@ -89,44 +106,69 @@ const Dashboard = () => {
         </div>
       )}
 
-      <div className="w-full flex flex-col justify-center items-center min-h-screen bg-gray-50">
+      <div className="w-full flex flex-col justify-center items-center min-h-screen bg-black">
         {!isAuthenticated ? (
-          <div className="flex flex-col items-center p-8 border rounded-lg shadow-lg w-96 bg-white">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Login</h2>
+          <Card className="w-full max-w-md p-8">
+            <div className="flex flex-col items-center">
+              <h2 className="text-3xl font-bold text-gray-800">
+                Authentication
+              </h2>
+              <p className="text-[12px] text-black/60 mt-2">
+                This authentication is restricted to admins only
+              </p>
 
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="border p-3 mb-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="border p-3 mb-6 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleLogin}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg w-full hover:bg-blue-700 transition duration-300"
-            >
-              Login
-            </button>
-          </div>
+              <div className="w-full mt-6 space-y-4">
+                <Input
+                  type="text"
+                  label="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full"
+                />
+
+                <Input
+                  type="password"
+                  label="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <Button
+                onPress={handleLogin}
+                className="w-full py-6 mt-6 font-medium"
+              >
+                Let's Authenticate
+              </Button>
+
+              <div className="mt-6 text-[12px] text-gray-500">
+                If you're not an admin?{" "}
+                <Link to="/" className="text-primary-500 hover:underline">
+                  Go to home page.
+                </Link>
+              </div>
+            </div>
+          </Card>
         ) : (
           <>
-            <div className="w-full flex justify-end p-6">
-              <button
-                onClick={handleLogout}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300"
-              >
-                Logout
-              </button>
+            <div className="bg-white min-w-full min-h-screen">
+              <div className="w-full flex justify-end items-end p-6">
+                <Button
+                  onPress={handleLogout}
+                  variant="flat"
+                  className="px-6 py-3 bg-black text-white"
+                  endContent={<img className="w-4" src={Logout} alt="Logout" />}
+                >
+                  Logout
+                </Button>
+              </div>
+              <div className="flex flex-col justify-start items-center px-12 pt-4 pb-20 gap-y-16">
+                <ProductForm />
+                <div className="w-full h-[1px] bg-black/20"></div>
+                <ProductList />
+              </div>
             </div>
-            <ProductForm />
-            <ProductList />
           </>
         )}
       </div>

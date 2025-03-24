@@ -29,7 +29,7 @@ router.post("/send-enquiry", async (req, res) => {
     
     Please respond to the enquiry as soon as possible.`;
 
-    // Email content for user confirmation
+    // Confirmation email content for user
     const userEmailText = `Dear ${name},
 
     Thank you for reaching out to Hotel Supplies. We have received your enquiry and will get back to you shortly.
@@ -47,7 +47,7 @@ router.post("/send-enquiry", async (req, res) => {
 
     // Send email to admin
     const adminResult = await sendEmail(
-      "srinisvfb1018@gmail.com",
+      "ecococoproduct@gmail.com",
       "New Enquiry Received - Hotel Supplies",
       adminEmailText
     );
