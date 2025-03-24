@@ -218,7 +218,7 @@ const ProductList: React.FC = () => {
       }));
 
       const response = await axios.post(
-        `https://hotel-supplies-backend.vercel.app//api/categories/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/categories/${encodeURIComponent(
           categoryData.id
         )}/subcategories`,
         {
@@ -298,7 +298,7 @@ const ProductList: React.FC = () => {
       }
 
       const response = await axios.post(
-        `https://hotel-supplies-backend.vercel.app//api/categories/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/categories/${encodeURIComponent(
           categoryData.id
         )}/subcategories/${encodeURIComponent(subcategoryId)}/products`,
         {
@@ -409,7 +409,7 @@ const ProductList: React.FC = () => {
     try {
       console.log("Fetching products from API...");
       const response = await axios.get<any[]>(
-        "https://hotel-supplies-backend.vercel.app//api/products"
+        "https://hotel-supplies-backend.vercel.app/api/products"
       );
 
       console.log("Raw API response:", response.data);
@@ -510,7 +510,7 @@ const ProductList: React.FC = () => {
         return;
       }
 
-      const deleteUrl = `https://hotel-supplies-backend.vercel.app//api/products/category/${encodeURIComponent(
+      const deleteUrl = `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
         productToDelete.category
       )}/subcategory/${encodeURIComponent(
         productToDelete.subcategory
@@ -594,7 +594,7 @@ const ProductList: React.FC = () => {
 
       await axios.request({
         method: "DELETE",
-        url: "https://hotel-supplies-backend.vercel.app//api/products/bulk",
+        url: "https://hotel-supplies-backend.vercel.app/api/products/bulk",
         data: { ids: selectedIds, type },
       });
 
@@ -661,7 +661,7 @@ const ProductList: React.FC = () => {
       try {
         if (editEntityType === "category") {
           await axios.put(
-            `https://hotel-supplies-backend.vercel.app//api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               selectedProduct.category
             )}`,
             {
@@ -679,7 +679,7 @@ const ProductList: React.FC = () => {
           }
 
           await axios.put(
-            `https://hotel-supplies-backend.vercel.app//api/products/category/${encodeURIComponent(
+            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
               productToUpdate.category
             )}/subcategory/${encodeURIComponent(
               productToUpdate.subcategory
@@ -737,7 +737,7 @@ const ProductList: React.FC = () => {
   const handleDeleteCategory = async (category: string) => {
     try {
       await axios.delete(
-        `https://hotel-supplies-backend.vercel.app//api/products/category/${category}`
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${category}`
       );
 
       if (selectedCategory === category) {
@@ -756,7 +756,7 @@ const ProductList: React.FC = () => {
   ) => {
     try {
       await axios.delete(
-        `https://hotel-supplies-backend.vercel.app//api/products/category/${encodeURIComponent(
+        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
           category
         )}/subcategory/${encodeURIComponent(subcategory)}`
       );
@@ -803,7 +803,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app//api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {
@@ -858,7 +858,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app//api/upload",
+        "https://hotel-supplies-backend.vercel.app/api/upload",
         formData,
         {
           headers: {
@@ -1625,7 +1625,7 @@ const ProductList: React.FC = () => {
                           formData.append("file", file);
                           axios
                             .post<UploadResponse>(
-                              "https://hotel-supplies-backend.vercel.app//api/upload",
+                              "https://hotel-supplies-backend.vercel.app/api/upload",
                               formData,
                               {
                                 headers: {
@@ -1689,7 +1689,7 @@ const ProductList: React.FC = () => {
                                 formData.append("file", file);
                                 axios
                                   .post<UploadResponse>(
-                                    "https://hotel-supplies-backend.vercel.app//api/upload",
+                                    "https://hotel-supplies-backend.vercel.app/api/upload",
                                     formData,
                                     {
                                       headers: {
@@ -1995,7 +1995,7 @@ const ProductList: React.FC = () => {
                         formData.append("file", file);
                         axios
                           .post<UploadResponse>(
-                            "https://hotel-supplies-backend.vercel.app//api/upload",
+                            "https://hotel-supplies-backend.vercel.app/api/upload",
                             formData,
                             {
                               headers: {
@@ -2056,7 +2056,7 @@ const ProductList: React.FC = () => {
                             formData.append("file", file);
                             axios
                               .post<UploadResponse>(
-                                "https://hotel-supplies-backend.vercel.app//api/upload",
+                                "https://hotel-supplies-backend.vercel.app/api/upload",
                                 formData,
                                 {
                                   headers: {

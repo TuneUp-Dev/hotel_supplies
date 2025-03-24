@@ -127,7 +127,7 @@ const Cart = () => {
 
     try {
       const response = await fetch(
-        "https://hotel-supplies-backend.vercel.app//send-enquiry",
+        "https://hotel-supplies-backend.vercel.app/send-enquiry",
         {
           method: "POST",
           headers: {
