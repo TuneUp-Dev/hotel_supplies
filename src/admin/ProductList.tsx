@@ -3,11 +3,6 @@ import axios from "axios";
 import {
   Button,
   Input,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   useDisclosure,
   Checkbox,
   Image,
@@ -17,9 +12,12 @@ import ArrowRight from "../assets/arrow_right4.svg";
 import ArrowDown from "../assets/arrow_down2.svg";
 import Cancel from "../assets/cancel.svg";
 import Edit from "../assets/edit.svg";
+import Plus from "../assets/plus.svg";
 import Delete from "../assets/delete2.svg";
 import { Popconfirm } from "antd";
 import { Spinner } from "@heroui/react";
+import { generate, green, red } from "@ant-design/colors";
+import { ColorPicker, theme, Modal } from "antd";
 
 interface Product {
   id: string;
@@ -27,20 +25,29 @@ interface Product {
   categoryTitle?: string;
   categoryImage?: string;
   subcategory: string;
+  subcategoryId: string;
   title: string;
   allProducts: {
     name: string;
     productImageUrl?: string;
     productImages?: string[];
+    description: string;
+    price: number;
+    orderCount: number;
+    totalOrderCount: number;
+    availableColors: string[];
+    availableSizes: string[];
   }[];
 }
 
 interface Category {
   id: string;
   category: string;
+  categoryId: string;
   categoryTitle?: string;
   categoryImage?: string;
   subcategory: string;
+  subcategoryId: string;
   title: string;
   allProducts: {
     name: string;
@@ -51,13 +58,29 @@ interface Category {
 
 type EditEntityType = "category" | "subcategory" | "product";
 
-interface GroupedProducts {
-  [key: string]: {
-    categoryImage: string;
-    subcategories: {
-      [key: string]: Product[];
-    };
+interface CategoryData {
+  id: string;
+  categoryImage: string;
+  subcategories: {
+    [key: string]: Product[];
   };
+}
+
+interface SubcategoryProduct {
+  id?: string;
+  name: string;
+  description: string;
+  price: number;
+  orderCount: number;
+  totalOrderCount: number;
+  availableColors: string[];
+  availableSizes: string[];
+  productImageUrl: string;
+  productImages: string[];
+}
+
+interface GroupedProducts {
+  [key: string]: CategoryData;
 }
 
 interface UploadResponse {
@@ -65,12 +88,76 @@ interface UploadResponse {
 }
 
 const ProductList: React.FC = () => {
+  const { token } = theme.useToken();
+
+  const genPresets = (colors: {
+    primary: string[];
+    red: string[];
+    green: string[];
+  }) => {
+    return [
+      {
+        label: "Recommended",
+        colors: colors.primary,
+      },
+      {
+        label: "Red",
+        colors: colors.red,
+      },
+      {
+        label: "Green",
+        colors: colors.green,
+      },
+    ];
+  };
+
+  const presets = genPresets({
+    primary: generate(token.colorPrimary),
+    red,
+    green,
+  });
+
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    description: "",
+    price: 0,
+    orderCount: 0,
+    totalOrderCount: 0,
+    availableColors: [] as string[],
+    availableSizes: [] as string[],
+    productImageUrl: "",
+    productImages: [] as string[],
+  });
+
+  const [isSubcategoryModalOpen, setIsSubcategoryModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [subcategoryProducts, setSubcategoryProducts] = useState<
+    SubcategoryProduct[]
+  >([]);
+  const [newSubcategoryProduct, setNewSubcategoryProduct] =
+    useState<SubcategoryProduct>({
+      name: "",
+      description: "",
+      price: 0,
+      orderCount: 0,
+      totalOrderCount: 0,
+      availableColors: [],
+      availableSizes: [],
+      productImageUrl: "",
+      productImages: [],
+    });
+
+  const [tempColor, setTempColor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [alert, setAlert] = useState<{
-    message: string;
-    visible: boolean;
-    type: "success" | "error" | "warning";
-  } | null>(null);
+  const [alert, setAlert] = useState<
+    | {
+        message: string;
+        visible: boolean;
+        type: "success" | "error" | "warning";
+      }
+    | false
+  >(false);
   const [expandedProducts, setExpandedProducts] = useState<{
     [key: string]: boolean;
   }>({});
@@ -98,20 +185,307 @@ const ProductList: React.FC = () => {
     fileInputRef.current.value = "";
   }
 
+  const handleAddSubcategory = async () => {
+    if (!selectedCategory || !newSubcategoryName.trim()) return;
+
+    try {
+      setAlert({
+        message: "Adding subcategory...",
+        visible: true,
+        type: "warning",
+      });
+
+      const categoryData = groupedProducts[selectedCategory];
+      if (!categoryData) {
+        throw new Error("Category data not found");
+      }
+
+      const productsToSend = subcategoryProducts.map((product) => ({
+        name: product.name,
+        allProducts: [
+          {
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            orderCount: product.orderCount,
+            totalOrderCount: product.totalOrderCount,
+            availableColors: product.availableColors,
+            availableSizes: product.availableSizes,
+            productImageUrl: product.productImageUrl,
+            productImages: product.productImages,
+          },
+        ],
+      }));
+
+      const response = await axios.post(
+        `http://localhost:5003/api/categories/${encodeURIComponent(
+          categoryData.id
+        )}/subcategories`,
+        {
+          name: newSubcategoryName,
+          products: productsToSend,
+        }
+      );
+
+      console.log(response);
+
+      setAlert({
+        message: "Subcategory and products added successfully!",
+        visible: true,
+        type: "success",
+      });
+
+      setIsSubcategoryModalOpen(false);
+      setNewSubcategoryName("");
+      setSubcategoryProducts([]);
+      setNewSubcategoryProduct({
+        name: "",
+        description: "",
+        price: 0,
+        orderCount: 0,
+        totalOrderCount: 0,
+        availableColors: [],
+        availableSizes: [],
+        productImageUrl: "",
+        productImages: [],
+      });
+
+      await fetchProducts();
+    } catch (error: any) {
+      console.error("Error adding subcategory:", error);
+      setAlert({
+        message: `Failed to add subcategory: ${
+          error.response?.data?.message || error.message
+        }`,
+        visible: true,
+        type: "error",
+      });
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!selectedCategory || !selectedSubcategory || !newProduct.name.trim()) {
+      return;
+    }
+
+    try {
+      setAlert({
+        message: "Adding product...",
+        visible: true,
+        type: "warning",
+      });
+
+      const categoryData = groupedProducts[selectedCategory];
+      if (!categoryData) {
+        throw new Error("Category data not found");
+      }
+
+      const subcategoryEntry = Object.entries(categoryData.subcategories).find(
+        ([name]) => name === selectedSubcategory
+      );
+
+      if (!subcategoryEntry) {
+        throw new Error("Subcategory data not found");
+      }
+
+      const [subcategoryName, products] = subcategoryEntry;
+      const subcategoryId = products[0]?.subcategoryId;
+
+      console.log(subcategoryName);
+
+      if (!subcategoryId) {
+        throw new Error("Subcategory ID not found");
+      }
+
+      const response = await axios.post(
+        `http://localhost:5003/api/categories/${encodeURIComponent(
+          categoryData.id
+        )}/subcategories/${encodeURIComponent(subcategoryId)}/products`,
+        {
+          name: newProduct.name,
+          allProducts: [
+            {
+              name: newProduct.name,
+              description: newProduct.description,
+              price: newProduct.price,
+              orderCount: newProduct.orderCount,
+              totalOrderCount: newProduct.totalOrderCount,
+              availableColors: newProduct.availableColors,
+              availableSizes: newProduct.availableSizes,
+              productImageUrl: newProduct.productImageUrl,
+              productImages: newProduct.productImages,
+            },
+          ],
+        }
+      );
+
+      console.log("Product added:", response.data);
+
+      setAlert({
+        message: "Product added successfully!",
+        visible: true,
+        type: "success",
+      });
+
+      setIsProductModalOpen(false);
+      setNewProduct({
+        name: "",
+        description: "",
+        price: 0,
+        orderCount: 0,
+        totalOrderCount: 0,
+        availableColors: [],
+        availableSizes: [],
+        productImageUrl: "",
+        productImages: [],
+      });
+      fetchProducts();
+    } catch (error: any) {
+      console.error("Error adding product:", error);
+      setAlert({
+        message: `Failed to add product: ${
+          error.response?.data?.message || error.message
+        }`,
+        visible: true,
+        type: "error",
+      });
+    }
+  };
+
+  const addProductToSubcategory = () => {
+    if (!newSubcategoryProduct.name.trim()) return;
+
+    setSubcategoryProducts([
+      ...subcategoryProducts,
+      {
+        ...newSubcategoryProduct,
+        id: Math.random().toString(36).substring(2, 9),
+      },
+    ]);
+
+    setNewSubcategoryProduct({
+      name: "",
+      description: "",
+      price: 0,
+      orderCount: 0,
+      totalOrderCount: 0,
+      availableColors: [],
+      availableSizes: [],
+      productImageUrl: "",
+      productImages: [],
+    });
+  };
+
+  const removeProductFromSubcategory = (index: number) => {
+    const updatedProducts = [...subcategoryProducts];
+    updatedProducts.splice(index, 1);
+    setSubcategoryProducts(updatedProducts);
+  };
+
+  const groupProducts = useCallback((products: Product[]): GroupedProducts => {
+    const grouped: GroupedProducts = {};
+
+    products.forEach((product) => {
+      if (!grouped[product.category]) {
+        grouped[product.category] = {
+          id: formatString(product.category),
+          categoryImage: product.categoryImage || "",
+          subcategories: {},
+        };
+      }
+      if (!grouped[product.category].subcategories[product.subcategory]) {
+        grouped[product.category].subcategories[product.subcategory] = [];
+      }
+      grouped[product.category].subcategories[product.subcategory].push(
+        product
+      );
+    });
+
+    return grouped;
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get<Product[]>(
-        "https://hotel-supplies-backend.vercel.app/api/products"
+      console.log("Fetching products from API...");
+      const response = await axios.get<any[]>(
+        "http://localhost:5003/api/products"
       );
-      setProducts(response.data);
-      setGroupedProducts(groupProducts(response.data));
+
+      console.log("Raw API response:", response.data);
+
+      const transformedProducts: Product[] = [];
+
+      response.data.forEach((category) => {
+        const categoryTitle =
+          category.categoryTitle || category.category || "Unnamed Category";
+        const categoryImage = category.categoryImage || "";
+
+        if (!category.subCategories || !Array.isArray(category.subCategories)) {
+          console.warn(`No subcategories found for category ${categoryTitle}`);
+          return;
+        }
+
+        category.subCategories.forEach((subcategory: any) => {
+          const subcategoryName = subcategory.name || "Unnamed Subcategory";
+          const subcategoryId = subcategory.id || "";
+
+          if (!subcategory.products || !Array.isArray(subcategory.products)) {
+            console.warn(
+              `No products found for subcategory ${subcategoryName}`
+            );
+            return;
+          }
+
+          subcategory.products.forEach((product: any) => {
+            const productId = product.id || "";
+            const productName =
+              product.name || product.title || "Unnamed Product";
+
+            transformedProducts.push({
+              id: productId,
+              category: categoryTitle,
+              categoryTitle: categoryTitle,
+              categoryImage: categoryImage,
+              subcategory: subcategoryName,
+              subcategoryId: subcategoryId,
+              title: productName,
+              allProducts: Array.isArray(product.allProducts)
+                ? product.allProducts.map((prod: any) => ({
+                    name: prod.name || prod.title || "",
+                    productImageUrl: prod.productImageUrl || "",
+                    productImages: prod.productImages || [],
+                    description: prod.description || "",
+                    price: Number(prod.price) || 0,
+                    orderCount: Number(prod.orderCount) || 0,
+                    totalOrderCount: Number(prod.totalOrderCount) || 0,
+                    availableColors: Array.isArray(prod.availableColors)
+                      ? prod.availableColors
+                      : [],
+                    availableSizes: Array.isArray(prod.availableSizes)
+                      ? prod.availableSizes
+                      : [],
+                  }))
+                : [],
+            });
+          });
+        });
+      });
+
+      console.log("Transformed products:", transformedProducts);
+      setProducts(transformedProducts);
+      setGroupedProducts(groupProducts(transformedProducts));
     } catch (error) {
       console.error("Error fetching products:", error);
+      setAlert({
+        message: "Failed to fetch products. Please try again.",
+        visible: true,
+        type: "error",
+      });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [groupProducts]);
 
   useEffect(() => {
     fetchProducts();
@@ -119,23 +493,76 @@ const ProductList: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      setAlert({
+        message: "Deleting Product...",
+        visible: true,
+        type: "warning",
+      });
+
       const productToDelete = products.find((product) => product.id === id);
       if (!productToDelete) {
-        console.error("Product not found");
+        console.error("❌ Product not found");
+        setAlert({
+          message: "Product not found",
+          visible: true,
+          type: "error",
+        });
         return;
       }
 
-      await axios.delete(
-        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
-          productToDelete.category
-        )}/subcategory/${encodeURIComponent(
-          productToDelete.subcategory
-        )}/product/${encodeURIComponent(id)}`
+      const deleteUrl = `http://localhost:5003/api/products/category/${encodeURIComponent(
+        productToDelete.category
+      )}/subcategory/${encodeURIComponent(
+        productToDelete.subcategory
+      )}/product/${encodeURIComponent(id)}`;
+
+      console.log("🔗 Deleting product at:", deleteUrl);
+
+      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+      setGroupedProducts((prev) => {
+        const newGrouped = { ...prev };
+        const subcategoryProducts =
+          newGrouped[productToDelete.category]?.subcategories[
+            productToDelete.subcategory
+          ];
+        if (subcategoryProducts) {
+          newGrouped[productToDelete.category].subcategories[
+            productToDelete.subcategory
+          ] = subcategoryProducts.filter((p) => p.id !== id);
+        }
+        return newGrouped;
+      });
+
+      const response = await axios.delete(deleteUrl);
+
+      console.log("✅ Response:", response.data);
+
+      if (response.status !== 200) {
+        throw new Error("Failed to delete product");
+      }
+
+      setAlert({
+        message: "Product Deleted Successfully",
+        visible: true,
+        type: "success",
+      });
+
+      setTimeout(() => {
+        fetchProducts();
+      }, 1000);
+    } catch (error: any) {
+      console.error(
+        "❌ Error deleting product:",
+        error.response?.data || error
       );
 
       fetchProducts();
-    } catch (error) {
-      console.error("Error deleting product:", error);
+
+      setAlert({
+        message: error.response?.data?.message || "Failed to delete product",
+        visible: true,
+        type: "error",
+      });
     }
   };
 
@@ -144,15 +571,30 @@ const ProductList: React.FC = () => {
       let type = "";
       if (isCategorySelectMode) {
         type = "category";
+        setAlert({
+          message: "Deleting Categories...",
+          visible: true,
+          type: "warning",
+        });
       } else if (isSubcategorySelectMode) {
         type = "subcategory";
+        setAlert({
+          message: "Deleting Subcategories...",
+          visible: true,
+          type: "warning",
+        });
       } else if (isProductSelectMode) {
         type = "product";
+        setAlert({
+          message: "Deleting Products...",
+          visible: true,
+          type: "warning",
+        });
       }
 
       await axios.request({
         method: "DELETE",
-        url: "https://hotel-supplies-backend.vercel.app/api/products/bulk",
+        url: "http://localhost:5003/api/products/bulk",
         data: { ids: selectedIds, type },
       });
 
@@ -162,6 +604,11 @@ const ProductList: React.FC = () => {
       setIsProductSelectMode(false);
       setActiveSelectionMode(null);
       fetchProducts();
+      setAlert({
+        message: "Deleted Successfully...",
+        visible: true,
+        type: "success",
+      });
     } catch (error) {
       console.error("Error deleting products:", error);
     }
@@ -189,11 +636,22 @@ const ProductList: React.FC = () => {
     entity: Product | Category,
     entityType: EditEntityType
   ) => {
-    setSelectedProduct({
-      ...entity,
-      category: entity.categoryTitle ? formatString(entity.categoryTitle) : "",
-      categoryTitle: entity.categoryTitle || entity.category,
-    });
+    if (entityType === "category" || entityType === "subcategory") {
+      setSelectedProduct({
+        id: entity.id || "",
+        category: entity.categoryTitle
+          ? formatString(entity.categoryTitle)
+          : entity.category,
+        categoryTitle: entity.categoryTitle || entity.category,
+        categoryImage: entity.categoryImage || "",
+        subcategory: entity.subcategory || "",
+        subcategoryId: entity.subcategoryId || "",
+        title: entity.title || "",
+        allProducts: [],
+      });
+    } else {
+      setSelectedProduct(entity as Product);
+    }
     setEditEntityType(entityType);
     onOpen();
   };
@@ -203,7 +661,7 @@ const ProductList: React.FC = () => {
       try {
         if (editEntityType === "category") {
           await axios.put(
-            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `http://localhost:5003/api/products/category/${encodeURIComponent(
               selectedProduct.category
             )}`,
             {
@@ -221,7 +679,7 @@ const ProductList: React.FC = () => {
           }
 
           await axios.put(
-            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+            `http://localhost:5003/api/products/category/${encodeURIComponent(
               productToUpdate.category
             )}/subcategory/${encodeURIComponent(
               productToUpdate.subcategory
@@ -276,31 +734,10 @@ const ProductList: React.FC = () => {
     }
   };
 
-  const groupProducts = (products: Product[]): GroupedProducts => {
-    const grouped: GroupedProducts = {};
-
-    products.forEach((product) => {
-      if (!grouped[product.category]) {
-        grouped[product.category] = {
-          categoryImage: product.categoryImage || "",
-          subcategories: {},
-        };
-      }
-      if (!grouped[product.category].subcategories[product.subcategory]) {
-        grouped[product.category].subcategories[product.subcategory] = [];
-      }
-      grouped[product.category].subcategories[product.subcategory].push(
-        product
-      );
-    });
-
-    return grouped;
-  };
-
   const handleDeleteCategory = async (category: string) => {
     try {
       await axios.delete(
-        `https://hotel-supplies-backend.vercel.app/api/products/category/${category}`
+        `http://localhost:5003/api/products/category/${category}`
       );
 
       if (selectedCategory === category) {
@@ -319,7 +756,7 @@ const ProductList: React.FC = () => {
   ) => {
     try {
       await axios.delete(
-        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `http://localhost:5003/api/products/category/${encodeURIComponent(
           category
         )}/subcategory/${encodeURIComponent(subcategory)}`
       );
@@ -366,7 +803,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app/api/upload",
+        "http://localhost:5003/api/upload",
         formData,
         {
           headers: {
@@ -421,7 +858,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app/api/upload",
+        "http://localhost:5003/api/upload",
         formData,
         {
           headers: {
@@ -490,9 +927,11 @@ const ProductList: React.FC = () => {
                 ? "danger"
                 : alert.message === "Uploading image..."
                 ? "default"
+                : alert.message === "Deleted Successfully..."
+                ? "success"
                 : alert.message === "Image uploaded successfully!"
                 ? "success"
-                : "warning"
+                : "default"
             }
             title={alert.message}
             onClose={() =>
@@ -502,7 +941,7 @@ const ProductList: React.FC = () => {
         </div>
       )}
 
-      <div className="w-full p-4">
+      <div className="w-full">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold mb-4">Product List</h1>
 
@@ -523,7 +962,7 @@ const ProductList: React.FC = () => {
                 color="warning"
                 className="text-medium text-[14px] px-5 py-3"
               >
-                Delete Selected{" "}
+                Delete Selected
                 <span className="bg-white/25 border-[1px] border-white/50 w-6 h-6 text-center flex justify-center items-center rounded-md">
                   {selectedIds.length}
                 </span>
@@ -540,7 +979,7 @@ const ProductList: React.FC = () => {
               <Button
                 isIconOnly
                 className="bg-gray-100 hover:shadow-sm rounded-lg"
-                onClick={handleCategorySelectMode}
+                onPress={handleCategorySelectMode}
                 isDisabled={
                   activeSelectionMode !== null &&
                   activeSelectionMode !== "category"
@@ -587,12 +1026,13 @@ const ProductList: React.FC = () => {
                       color="primary"
                       variant="flat"
                       size="sm"
-                      onClick={() =>
+                      onPress={() =>
                         handleEdit(
                           {
                             id: "",
                             category,
                             subcategory: "",
+                            subcategoryId: "",
                             title: "",
                             allProducts: [],
                             categoryImage: data.categoryImage,
@@ -633,21 +1073,34 @@ const ProductList: React.FC = () => {
                 <h2 className="text-[16px] font-semibold">
                   Sub Categories of {selectedCategory}
                 </h2>
-                <Button
-                  isIconOnly
-                  className="bg-gray-100 hover:shadow-sm rounded-lg"
-                  onClick={handleSubcategorySelectMode}
-                  isDisabled={
-                    activeSelectionMode !== null &&
-                    activeSelectionMode !== "subcategory"
-                  }
-                >
-                  {isSubcategorySelectMode ? (
-                    <img className="w-6 brightness-0" src={Cancel} alt="" />
-                  ) : (
-                    <img className="w-6 brightness-0" src={Edit} alt="" />
+
+                <div className="flex justify-end items-center gap-x-3">
+                  {selectedCategory && (
+                    <Button
+                      className="bg-gray-100 hover:shadow-sm rounded-lg"
+                      onPress={() => setIsSubcategoryModalOpen(true)}
+                      isIconOnly
+                    >
+                      <img src={Plus} className="w-6" alt="" />
+                    </Button>
                   )}
-                </Button>
+
+                  <Button
+                    isIconOnly
+                    className="bg-gray-100 hover:shadow-sm rounded-lg"
+                    onPress={handleSubcategorySelectMode}
+                    isDisabled={
+                      activeSelectionMode !== null &&
+                      activeSelectionMode !== "subcategory"
+                    }
+                  >
+                    {isSubcategorySelectMode ? (
+                      <img className="w-6 brightness-0" src={Cancel} alt="" />
+                    ) : (
+                      <img className="w-6 brightness-0" src={Edit} alt="" />
+                    )}
+                  </Button>
+                </div>
               </div>
               {Object.entries(
                 groupedProducts[selectedCategory].subcategories
@@ -681,12 +1134,13 @@ const ProductList: React.FC = () => {
                         isIconOnly
                         aria-label="Edit item"
                         variant="flat"
-                        onClick={() =>
+                        onPress={() =>
                           handleEdit(
                             {
                               id: "",
                               category: selectedCategory,
                               subcategory,
+                              subcategoryId: "",
                               title: "",
                               allProducts: [],
                             },
@@ -732,21 +1186,34 @@ const ProductList: React.FC = () => {
                   <h2 className="text-[16px] font-semibold">
                     Products of {selectedSubcategory}
                   </h2>
-                  <Button
-                    isIconOnly
-                    className="bg-gray-100 hover:shadow-sm rounded-lg"
-                    onClick={handleProductSelectMode}
-                    isDisabled={
-                      activeSelectionMode !== null &&
-                      activeSelectionMode !== "product"
-                    }
-                  >
-                    {isProductSelectMode ? (
-                      <img className="w-6 brightness-0" src={Cancel} alt="" />
-                    ) : (
-                      <img className="w-6 brightness-0" src={Edit} alt="" />
+
+                  <div className="flex justify-end items-center gap-x-3">
+                    {selectedCategory && (
+                      <Button
+                        className="bg-gray-100 hover:shadow-sm rounded-lg"
+                        onPress={() => setIsProductModalOpen(true)}
+                        isIconOnly
+                      >
+                        <img src={Plus} className="w-6" alt="" />
+                      </Button>
                     )}
-                  </Button>
+
+                    <Button
+                      isIconOnly
+                      className="bg-gray-100 hover:shadow-sm rounded-lg"
+                      onPress={handleProductSelectMode}
+                      isDisabled={
+                        activeSelectionMode !== null &&
+                        activeSelectionMode !== "product"
+                      }
+                    >
+                      {isProductSelectMode ? (
+                        <img className="w-6 brightness-0" src={Cancel} alt="" />
+                      ) : (
+                        <img className="w-6 brightness-0" src={Edit} alt="" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {groupedProducts[selectedCategory]?.subcategories[
@@ -788,7 +1255,7 @@ const ProductList: React.FC = () => {
                             color="primary"
                             size="sm"
                             variant="flat"
-                            onClick={() => handleEdit(product, "product")}
+                            onPress={() => handleEdit(product, "product")}
                           >
                             <img src={Edit} className="w-[18px]" alt="" />
                           </Button>
@@ -821,6 +1288,7 @@ const ProductList: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <p className="ml-7 text-[14px] text-black/60">
                                   {prod.name}
+                                  {/* Use prod.name instead of prod.title */}
                                 </p>
                               </div>
                               <div className="flex items-center justify-start gap-5 mt-2">
@@ -852,6 +1320,58 @@ const ProductList: React.FC = () => {
                                   )}
                                 </div>
                               </div>
+                              <div className="ml-7 mt-5 flex flex-col justify-start items-start gap-y-1.5">
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Description:{" "}
+                                  <p className="text-black/60 font-normal">
+                                    {prod.description}
+                                  </p>
+                                </p>
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Price:{" "}
+                                  <p className="text-black/60 font-normal">
+                                    ${prod.price}
+                                  </p>
+                                </p>
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Orders:{" "}
+                                  <p className="text-black/60 font-normal">
+                                    {prod.orderCount}
+                                  </p>
+                                </p>
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Total Orders:{" "}
+                                  <p className="text-black/60 font-normal">
+                                    {prod.totalOrderCount}
+                                  </p>
+                                </p>
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Colors:{" "}
+                                  <p className="text-black/60 font-normal">
+                                    {prod.availableColors.join(", ")}
+                                  </p>
+                                </p>
+                                <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
+                                  Sizes:{" "}
+                                  <span className="text-black/60 font-normal">
+                                    {prod.availableSizes
+                                      .slice()
+                                      .sort((a: string, b: string) => {
+                                        const order = [
+                                          "Extra Small",
+                                          "Small",
+                                          "Medium",
+                                          "Large",
+                                          "Extra Large",
+                                        ];
+                                        return (
+                                          order.indexOf(a) - order.indexOf(b)
+                                        );
+                                      })
+                                      .join(", ")}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           ))}
                         </>
@@ -863,295 +1383,1208 @@ const ProductList: React.FC = () => {
             )}
         </div>
 
+        {/* Add Subcategory Modal */}
         <Modal
-          isOpen={isOpen}
-          size="5xl"
-          className="overflow-y-scroll"
-          placement="top"
-          onOpenChange={onOpenChange}
+          title="Add New Subcategory with Products"
+          open={isSubcategoryModalOpen}
+          onCancel={() => setIsSubcategoryModalOpen(false)}
+          onOk={handleAddSubcategory}
+          width="80%"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            borderRadius: "10px",
+            scrollbarWidth: "none",
+          }}
+          footer={
+            <>
+              <div className="flex justify-end items-center gap-x-3">
+                <Button
+                  key="back"
+                  onPress={() => setIsSubcategoryModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  key="submit"
+                  color="primary"
+                  onPress={handleAddSubcategory}
+                >
+                  Add Subcategory
+                </Button>
+              </div>
+            </>
+          }
         >
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader>Edit {editEntityType}</ModalHeader>
-                <ModalBody>
-                  {selectedProduct && (
-                    <div className="space-y-4">
-                      {editEntityType === "category" && (
-                        <>
+          <div className="space-y-4">
+            <Input
+              label="Subcategory Name"
+              value={newSubcategoryName}
+              onChange={(e) => setNewSubcategoryName(e.target.value)}
+              placeholder="Enter subcategory name"
+              required
+            />
+
+            <h3 className="text-lg font-medium mt-6">Add Products</h3>
+
+            <div className="space-y-4">
+              <Input
+                label="Product Name"
+                value={newSubcategoryProduct.name}
+                onChange={(e) =>
+                  setNewSubcategoryProduct({
+                    ...newSubcategoryProduct,
+                    name: e.target.value,
+                  })
+                }
+                placeholder="Enter product name"
+                required
+              />
+              <Input
+                label="Description"
+                value={newSubcategoryProduct.description}
+                onChange={(e) =>
+                  setNewSubcategoryProduct({
+                    ...newSubcategoryProduct,
+                    description: e.target.value,
+                  })
+                }
+                placeholder="Enter product description"
+              />
+              <Input
+                label="Price"
+                type="number"
+                value={newSubcategoryProduct.price.toString()}
+                onChange={(e) =>
+                  setNewSubcategoryProduct({
+                    ...newSubcategoryProduct,
+                    price: parseFloat(e.target.value) || 0,
+                  })
+                }
+                placeholder="Enter product price"
+              />
+              <Input
+                label="Order Count"
+                type="number"
+                value={newSubcategoryProduct.orderCount?.toString() || "0"}
+                onChange={(e) =>
+                  setNewSubcategoryProduct({
+                    ...newSubcategoryProduct,
+                    orderCount: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Enter order count"
+              />
+              <Input
+                label="Total Order Count"
+                type="number"
+                value={newSubcategoryProduct.totalOrderCount?.toString() || "0"}
+                onChange={(e) =>
+                  setNewSubcategoryProduct({
+                    ...newSubcategoryProduct,
+                    totalOrderCount: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Enter total order count"
+              />
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Available Colors
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {newSubcategoryProduct.availableColors?.map(
+                    (color, colorIndex) => (
+                      <div
+                        key={colorIndex}
+                        className="flex items-center gap-2 p-2 rounded"
+                        style={{ backgroundColor: color }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewSubcategoryProduct({
+                              ...newSubcategoryProduct,
+                              availableColors:
+                                newSubcategoryProduct.availableColors?.filter(
+                                  (_, i) => i !== colorIndex
+                                ) || [],
+                            });
+                          }}
+                          className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
+                        >
+                          <img className="w-3" src={Cancel} alt="" />
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <ColorPicker
+                    presets={presets}
+                    defaultValue="#3b82f6"
+                    onChange={(color) => {
+                      setTempColor(color.toHexString());
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onPress={() => {
+                      if (tempColor) {
+                        setNewSubcategoryProduct({
+                          ...newSubcategoryProduct,
+                          availableColors: [
+                            ...(newSubcategoryProduct.availableColors || []),
+                            tempColor,
+                          ],
+                        });
+                        setTempColor(null);
+                      }
+                    }}
+                    disabled={!tempColor}
+                  >
+                    Add Color
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Available Sizes
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Extra Small",
+                    "Small",
+                    "Medium",
+                    "Large",
+                    "Extra Large",
+                  ].map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      color={
+                        newSubcategoryProduct.availableSizes?.includes(size)
+                          ? "primary"
+                          : "default"
+                      }
+                      onPress={() => {
+                        setNewSubcategoryProduct({
+                          ...newSubcategoryProduct,
+                          availableSizes:
+                            newSubcategoryProduct.availableSizes?.includes(size)
+                              ? newSubcategoryProduct.availableSizes.filter(
+                                  (s) => s !== size
+                                )
+                              : [
+                                  ...(newSubcategoryProduct.availableSizes ||
+                                    []),
+                                  size,
+                                ],
+                        });
+                      }}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    {newSubcategoryProduct.productImageUrl && (
+                      <Image
+                        src={newSubcategoryProduct.productImageUrl}
+                        alt="Product"
+                        width={50}
+                        height={50}
+                        className="rounded"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-grow">
+                    <Input
+                      label="Product Image URL"
+                      value={newSubcategoryProduct.productImageUrl || ""}
+                      onChange={(e) =>
+                        setNewSubcategoryProduct({
+                          ...newSubcategoryProduct,
+                          productImageUrl: e.target.value,
+                        })
+                      }
+                      placeholder="Enter product image URL"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          axios
+                            .post<UploadResponse>(
+                              "http://localhost:5003/api/upload",
+                              formData,
+                              {
+                                headers: {
+                                  "Content-Type": "multipart/form-data",
+                                },
+                              }
+                            )
+                            .then((response) => {
+                              setNewSubcategoryProduct({
+                                ...newSubcategoryProduct,
+                                productImageUrl: response.data.imageUrl,
+                              });
+                            });
+                        }
+                      }}
+                      className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">
+                    Additional Product Images
+                  </label>
+                  {newSubcategoryProduct.productImages?.map(
+                    (image, imgIndex) => (
+                      <div key={imgIndex} className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          {image && (
+                            <Image
+                              src={image}
+                              alt={`Product image ${imgIndex}`}
+                              width={40}
+                              height={40}
+                              className="rounded"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-grow flex gap-2">
                           <Input
-                            label="Category Title"
-                            value={selectedProduct.categoryTitle || ""}
-                            onChange={(
-                              e: React.ChangeEvent<HTMLInputElement>
-                            ) =>
-                              setSelectedProduct({
-                                ...selectedProduct,
-                                categoryTitle: e.target.value,
-                                category: formatString(e.target.value),
-                              })
-                            }
+                            value={image}
+                            onChange={(e) => {
+                              const updatedImages = [
+                                ...(newSubcategoryProduct.productImages || []),
+                              ];
+                              updatedImages[imgIndex] = e.target.value;
+                              setNewSubcategoryProduct({
+                                ...newSubcategoryProduct,
+                                productImages: updatedImages,
+                              });
+                            }}
+                            placeholder="Enter image URL"
                           />
-                          <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                              {selectedProduct.categoryImage && (
-                                <Image
-                                  src={selectedProduct.categoryImage}
-                                  alt={
-                                    selectedProduct.categoryTitle || "Category"
-                                  }
-                                  width={60}
-                                  height={60}
-                                  className="rounded"
-                                />
-                              )}
-                            </div>
-                            <div className="flex-grow">
-                              <Input
-                                label="Category Image URL"
-                                value={selectedProduct.categoryImage || ""}
-                                onChange={(
-                                  e: React.ChangeEvent<HTMLInputElement>
-                                ) =>
-                                  setSelectedProduct({
-                                    ...selectedProduct,
-                                    categoryImage: e.target.value,
-                                  })
-                                }
-                              />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleImageUpload(file);
-                                  }
-                                }}
-                                className="mt-2"
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      {editEntityType === "subcategory" && (
-                        <Input
-                          label="Sub Category"
-                          value={selectedProduct.subcategory}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setSelectedProduct({
-                              ...selectedProduct,
-                              subcategory: e.target.value,
-                            })
-                          }
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const formData = new FormData();
+                                formData.append("file", file);
+                                axios
+                                  .post<UploadResponse>(
+                                    "http://localhost:5003/api/upload",
+                                    formData,
+                                    {
+                                      headers: {
+                                        "Content-Type": "multipart/form-data",
+                                      },
+                                    }
+                                  )
+                                  .then((response) => {
+                                    const updatedImages = [
+                                      ...(newSubcategoryProduct.productImages ||
+                                        []),
+                                    ];
+                                    updatedImages[imgIndex] =
+                                      response.data.imageUrl;
+                                    setNewSubcategoryProduct({
+                                      ...newSubcategoryProduct,
+                                      productImages: updatedImages,
+                                    });
+                                  });
+                              }
+                            }}
+                            className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                          <Button
+                            color="danger"
+                            size="sm"
+                            onPress={() => {
+                              setNewSubcategoryProduct({
+                                ...newSubcategoryProduct,
+                                productImages: (
+                                  newSubcategoryProduct.productImages || []
+                                ).filter((_, i) => i !== imgIndex),
+                              });
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  )}
+                  <Button
+                    color="primary"
+                    size="sm"
+                    className="mt-2"
+                    onPress={() => {
+                      setNewSubcategoryProduct({
+                        ...newSubcategoryProduct,
+                        productImages: [
+                          ...(newSubcategoryProduct.productImages || []),
+                          "",
+                        ],
+                      });
+                    }}
+                  >
+                    Add Image URL
+                  </Button>
+                </div>
+              </div>
+
+              <Button
+                onPress={addProductToSubcategory}
+                className="mt-4"
+                disabled={!newSubcategoryProduct.name.trim()}
+              >
+                Add Product
+              </Button>
+            </div>
+
+            {subcategoryProducts.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-2">
+                  Products in this Subcategory
+                </h3>
+                <div className="space-y-2">
+                  {subcategoryProducts.map((product, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-gray-100 rounded"
+                    >
+                      <span>{product.name}</span>
+                      <Button
+                        size="sm"
+                        color="danger"
+                        onPress={() => removeProductFromSubcategory(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        {/* Add Product Modal */}
+        <Modal
+          title="Add New Product"
+          open={isProductModalOpen}
+          onCancel={() => setIsProductModalOpen(false)}
+          onOk={handleAddProduct}
+          width="80%"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            borderRadius: "10px",
+            scrollbarWidth: "none",
+          }}
+          footer={
+            <>
+              <div className="flex justify-end items-center gap-x-3">
+                <Button key="back" onPress={() => setIsProductModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button key="submit" color="primary" onPress={handleAddProduct}>
+                  Add Subcategory
+                </Button>
+              </div>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Input
+              label="Product Name"
+              value={newProduct.name}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, name: e.target.value })
+              }
+              placeholder="Enter product name"
+            />
+            <Input
+              label="Description"
+              value={newProduct.description}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, description: e.target.value })
+              }
+              placeholder="Enter product description"
+            />
+            <Input
+              label="Price"
+              type="number"
+              value={newProduct.price.toString()}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  price: parseFloat(e.target.value) || 0,
+                })
+              }
+              placeholder="Enter product price"
+            />
+            <Input
+              label="Order Count"
+              type="number"
+              value={newProduct.orderCount.toString()}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  orderCount: parseInt(e.target.value) || 0,
+                })
+              }
+              placeholder="Enter order count"
+            />
+            <Input
+              label="Total Order Count"
+              type="number"
+              value={newProduct.totalOrderCount.toString()}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  totalOrderCount: parseInt(e.target.value) || 0,
+                })
+              }
+              placeholder="Enter total order count"
+            />
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Available Colors
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {newProduct.availableColors.map((color, colorIndex) => (
+                  <div
+                    key={colorIndex}
+                    className="flex items-center gap-2 p-2 rounded"
+                    style={{ backgroundColor: color }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewProduct({
+                          ...newProduct,
+                          availableColors: newProduct.availableColors.filter(
+                            (_, i) => i !== colorIndex
+                          ),
+                        });
+                      }}
+                      className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
+                    >
+                      <img className="w-3" src={Cancel} alt="" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <ColorPicker
+                    presets={presets}
+                    defaultValue="#3b82f6"
+                    onChange={(color) => {
+                      setTempColor(color.toHexString());
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onPress={() => {
+                      if (tempColor) {
+                        setNewProduct({
+                          ...newProduct,
+                          availableColors: [
+                            ...newProduct.availableColors,
+                            tempColor,
+                          ],
+                        });
+                        setTempColor(null);
+                      }
+                    }}
+                    disabled={!tempColor}
+                  >
+                    Add Color
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Available Sizes
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {["Extra Small", "Small", "Medium", "Large", "Extra Large"].map(
+                  (size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      color={
+                        newProduct.availableSizes.includes(size)
+                          ? "primary"
+                          : "default"
+                      }
+                      onPress={() => {
+                        setNewProduct({
+                          ...newProduct,
+                          availableSizes: newProduct.availableSizes.includes(
+                            size
+                          )
+                            ? newProduct.availableSizes.filter(
+                                (s) => s !== size
+                              )
+                            : [...newProduct.availableSizes, size],
+                        });
+                      }}
+                    >
+                      {size}
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  {newProduct.productImageUrl && (
+                    <Image
+                      src={newProduct.productImageUrl}
+                      alt="Product"
+                      width={50}
+                      height={50}
+                      className="rounded"
+                    />
+                  )}
+                </div>
+                <div className="flex-grow">
+                  <Input
+                    label="Product Image URL"
+                    value={newProduct.productImageUrl}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        productImageUrl: e.target.value,
+                      })
+                    }
+                    placeholder="Enter product image URL"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        axios
+                          .post<UploadResponse>(
+                            "http://localhost:5003/api/upload",
+                            formData,
+                            {
+                              headers: {
+                                "Content-Type": "multipart/form-data",
+                              },
+                            }
+                          )
+                          .then((response) => {
+                            setNewProduct({
+                              ...newProduct,
+                              productImageUrl: response.data.imageUrl,
+                            });
+                          });
+                      }
+                    }}
+                    className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Product Images
+                </label>
+                {newProduct.productImages.map((image, imgIndex) => (
+                  <div key={imgIndex} className="flex gap-4">
+                    <div className="flex-shrink-0">
+                      {image && (
+                        <Image
+                          src={image}
+                          alt={`Product image ${imgIndex}`}
+                          width={40}
+                          height={40}
+                          className="rounded"
                         />
                       )}
-                      {editEntityType === "product" && (
-                        <>
-                          <Input
-                            label="Product Name"
-                            value={selectedProduct.title}
-                            onChange={(
-                              e: React.ChangeEvent<HTMLInputElement>
-                            ) =>
-                              setSelectedProduct({
-                                ...selectedProduct,
-                                title: e.target.value,
-                              })
-                            }
-                          />
-                          {selectedProduct.allProducts.map((prod, index) => (
-                            <div key={index} className="space-y-4">
-                              <Input
-                                label={`Product ${index + 1} Name`}
-                                value={prod.name}
-                                onChange={(
-                                  e: React.ChangeEvent<HTMLInputElement>
-                                ) => {
+                    </div>
+                    <div className="flex-grow flex gap-2">
+                      <Input
+                        value={image}
+                        onChange={(e) => {
+                          const updatedImages = [...newProduct.productImages];
+                          updatedImages[imgIndex] = e.target.value;
+                          setNewProduct({
+                            ...newProduct,
+                            productImages: updatedImages,
+                          });
+                        }}
+                        placeholder="Enter image URL"
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            axios
+                              .post<UploadResponse>(
+                                "http://localhost:5003/api/upload",
+                                formData,
+                                {
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              )
+                              .then((response) => {
+                                const updatedImages = [
+                                  ...newProduct.productImages,
+                                ];
+                                updatedImages[imgIndex] =
+                                  response.data.imageUrl;
+                                setNewProduct({
+                                  ...newProduct,
+                                  productImages: updatedImages,
+                                });
+                              });
+                          }
+                        }}
+                        className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      <Button
+                        color="danger"
+                        size="sm"
+                        onPress={() => {
+                          setNewProduct({
+                            ...newProduct,
+                            productImages: newProduct.productImages.filter(
+                              (_, i) => i !== imgIndex
+                            ),
+                          });
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  color="primary"
+                  size="sm"
+                  className="mt-2"
+                  onPress={() => {
+                    setNewProduct({
+                      ...newProduct,
+                      productImages: [...newProduct.productImages, ""],
+                    });
+                  }}
+                >
+                  Add Image URL
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          title={`Edit ${editEntityType}`}
+          open={isOpen}
+          onCancel={onOpenChange}
+          onOk={handleSave}
+          width="80%"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            borderRadius: "10px",
+            scrollbarWidth: "none",
+          }}
+          footer={[
+            <Button key="back" onPress={onOpenChange}>
+              Cancel
+            </Button>,
+            <Button key="submit" onPress={handleSave}>
+              Save
+            </Button>,
+          ]}
+        >
+          {selectedProduct && (
+            <div className="space-y-4">
+              {editEntityType === "category" && (
+                <>
+                  <Input
+                    label="Category Title"
+                    value={selectedProduct.categoryTitle || ""}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSelectedProduct({
+                        ...selectedProduct,
+                        categoryTitle: e.target.value,
+                        category: formatString(e.target.value),
+                      })
+                    }
+                  />
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0">
+                      {selectedProduct.categoryImage && (
+                        <Image
+                          src={selectedProduct.categoryImage}
+                          alt={selectedProduct.categoryTitle || "Category"}
+                          width={60}
+                          height={60}
+                          className="rounded"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-grow">
+                      <Input
+                        label="Category Image URL"
+                        value={selectedProduct.categoryImage || ""}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            categoryImage: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(file);
+                          }
+                        }}
+                        className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {editEntityType === "subcategory" && (
+                <Input
+                  label="Sub Category"
+                  value={selectedProduct.subcategory}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSelectedProduct({
+                      ...selectedProduct,
+                      subcategory: e.target.value,
+                    })
+                  }
+                />
+              )}
+              {editEntityType === "product" && (
+                <>
+                  <Input
+                    label="Product Name"
+                    value={selectedProduct.title}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSelectedProduct({
+                        ...selectedProduct,
+                        title: e.target.value,
+                      })
+                    }
+                  />
+                  {selectedProduct.allProducts.map((prod, index) => (
+                    <div key={index} className="space-y-4">
+                      <Input
+                        label={`Product ${index + 1} Name`}
+                        value={prod.name}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].name = e.target.value;
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      />
+                      <Input
+                        label={`Product ${index + 1} Description`}
+                        value={prod.description}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].description =
+                            e.target.value;
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      />
+                      <Input
+                        label={`Product ${index + 1} Price`}
+                        type="number"
+                        value={prod.price.toString()}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].price = parseFloat(
+                            e.target.value
+                          );
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      />
+                      <Input
+                        label={`Product ${index + 1} Order Count`}
+                        type="number"
+                        value={prod.orderCount.toString()}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].orderCount = parseInt(
+                            e.target.value
+                          );
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      />
+                      <Input
+                        label={`Product ${index + 1} Total Order Count`}
+                        type="number"
+                        value={prod.totalOrderCount.toString()}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].totalOrderCount = parseInt(
+                            e.target.value
+                          );
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      />
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Available Colors
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {prod.availableColors.map((color, colorIndex) => (
+                            <div
+                              key={colorIndex}
+                              className="flex items-center gap-2 p-2 rounded"
+                              style={{ backgroundColor: color }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
                                   const updatedAllProducts = [
                                     ...selectedProduct.allProducts,
                                   ];
-                                  updatedAllProducts[index].name =
-                                    e.target.value;
+                                  updatedAllProducts[index].availableColors =
+                                    updatedAllProducts[
+                                      index
+                                    ].availableColors.filter(
+                                      (_, i) => i !== colorIndex
+                                    );
                                   setSelectedProduct({
                                     ...selectedProduct,
                                     allProducts: updatedAllProducts,
                                   });
                                 }}
-                              />
-                              <div className="flex gap-4">
-                                <div className="flex-shrink-0">
-                                  {prod.productImageUrl && (
-                                    <Image
-                                      src={prod.productImageUrl}
-                                      alt={prod.name}
-                                      width={50}
-                                      height={50}
-                                      className="rounded"
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex-grow">
-                                  <Input
-                                    label={`Product ${index + 1} Image URL`}
-                                    value={prod.productImageUrl || ""}
-                                    onChange={(
-                                      e: React.ChangeEvent<HTMLInputElement>
-                                    ) => {
-                                      const updatedAllProducts = [
-                                        ...selectedProduct.allProducts,
-                                      ];
-                                      updatedAllProducts[
+                                className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
+                              >
+                                <img className="w-3" src={Cancel} alt="" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex gap-2 items-center">
+                            <ColorPicker
+                              presets={presets}
+                              defaultValue="#3b82f6"
+                              onChange={(color) => {
+                                setTempColor(color.toHexString());
+                              }}
+                            />
+
+                            <Button
+                              type="button"
+                              onPress={() => {
+                                if (tempColor) {
+                                  const updatedAllProducts = [
+                                    ...selectedProduct.allProducts,
+                                  ];
+                                  updatedAllProducts[index].availableColors = [
+                                    ...updatedAllProducts[index]
+                                      .availableColors,
+                                    tempColor,
+                                  ];
+                                  setSelectedProduct({
+                                    ...selectedProduct,
+                                    allProducts: updatedAllProducts,
+                                  });
+                                  setTempColor(null);
+                                }
+                              }}
+                              disabled={!tempColor}
+                            >
+                              Add Color
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Available Sizes
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "Extra Small",
+                            "Small",
+                            "Medium",
+                            "Large",
+                            "Extra Large",
+                          ].map((size) => (
+                            <Button
+                              key={size}
+                              type="button"
+                              color={
+                                prod.availableSizes.includes(size)
+                                  ? "primary"
+                                  : "default"
+                              }
+                              onPress={() => {
+                                const updatedAllProducts = [
+                                  ...selectedProduct.allProducts,
+                                ];
+                                updatedAllProducts[index].availableSizes =
+                                  updatedAllProducts[
+                                    index
+                                  ].availableSizes.includes(size)
+                                    ? updatedAllProducts[
                                         index
-                                      ].productImageUrl = e.target.value;
-                                      setSelectedProduct({
-                                        ...selectedProduct,
-                                        allProducts: updatedAllProducts,
-                                      });
-                                    }}
+                                      ].availableSizes.filter((s) => s !== size)
+                                    : [
+                                        ...updatedAllProducts[index]
+                                          .availableSizes,
+                                        size,
+                                      ];
+                                setSelectedProduct({
+                                  ...selectedProduct,
+                                  allProducts: updatedAllProducts,
+                                });
+                              }}
+                            >
+                              {size}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div key={index} className="space-y-4">
+                        <Input
+                          label={`Product ${index + 1} Name`}
+                          value={prod.name}
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>
+                          ) => {
+                            const updatedAllProducts = [
+                              ...selectedProduct.allProducts,
+                            ];
+                            updatedAllProducts[index].name = e.target.value;
+                            setSelectedProduct({
+                              ...selectedProduct,
+                              allProducts: updatedAllProducts,
+                            });
+                          }}
+                        />
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0">
+                            {prod.productImageUrl && (
+                              <Image
+                                src={prod.productImageUrl}
+                                alt={prod.name}
+                                width={50}
+                                height={50}
+                                className="rounded"
+                              />
+                            )}
+                          </div>
+                          <div className="flex-grow">
+                            <Input
+                              label={`Product ${index + 1} Image URL`}
+                              value={prod.productImageUrl || ""}
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>
+                              ) => {
+                                const updatedAllProducts = [
+                                  ...selectedProduct.allProducts,
+                                ];
+                                updatedAllProducts[index].productImageUrl =
+                                  e.target.value;
+                                setSelectedProduct({
+                                  ...selectedProduct,
+                                  allProducts: updatedAllProducts,
+                                });
+                              }}
+                            />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleCategoryImageUpload(file, index);
+                                }
+                              }}
+                              className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Product {index + 1} Images
+                          </label>
+                          {prod.productImages?.map((image, imgIndex) => (
+                            <div key={imgIndex} className="flex gap-4">
+                              <div className="flex-shrink-0">
+                                {image && (
+                                  <Image
+                                    src={image}
+                                    alt={`${prod.name}-image-${imgIndex}`}
+                                    width={40}
+                                    height={40}
+                                    className="rounded"
                                   />
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        handleCategoryImageUpload(file, index);
-                                      }
-                                    }}
-                                    className="mt-2"
-                                  />
-                                </div>
+                                )}
                               </div>
-                              <div className="space-y-2">
-                                <label className="block text-sm font-medium">
-                                  Product {index + 1} Images
-                                </label>
-                                {prod.productImages?.map((image, imgIndex) => (
-                                  <div key={imgIndex} className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                      {image && (
-                                        <Image
-                                          src={image}
-                                          alt={`${prod.name}-image-${imgIndex}`}
-                                          width={40}
-                                          height={40}
-                                          className="rounded"
-                                        />
-                                      )}
-                                    </div>
-                                    <div className="flex-grow flex gap-2">
-                                      <Input
-                                        value={image}
-                                        onChange={(
-                                          e: React.ChangeEvent<HTMLInputElement>
-                                        ) => {
-                                          const updatedAllProducts = [
-                                            ...selectedProduct.allProducts,
-                                          ];
-                                          updatedAllProducts[
-                                            index
-                                          ].productImages![imgIndex] =
-                                            e.target.value;
-                                          setSelectedProduct({
-                                            ...selectedProduct,
-                                            allProducts: updatedAllProducts,
-                                          });
-                                        }}
-                                      />
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            handleImageUpload(
-                                              file,
-                                              index,
-                                              imgIndex
-                                            );
-                                          }
-                                        }}
-                                        className="mt-2"
-                                      />
-                                      <Button
-                                        color="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                          const updatedAllProducts = [
-                                            ...selectedProduct.allProducts,
-                                          ];
-                                          updatedAllProducts[
-                                            index
-                                          ].productImages = updatedAllProducts[
-                                            index
-                                          ].productImages?.filter(
-                                            (_, i) => i !== imgIndex
-                                          );
-                                          setSelectedProduct({
-                                            ...selectedProduct,
-                                            allProducts: updatedAllProducts,
-                                          });
-                                        }}
-                                      >
-                                        Remove
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                                <Button
-                                  color="primary"
-                                  size="sm"
-                                  className="mt-2"
-                                  onClick={() => {
+                              <div className="flex-grow flex gap-2">
+                                <Input
+                                  value={image}
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>
+                                  ) => {
                                     const updatedAllProducts = [
                                       ...selectedProduct.allProducts,
                                     ];
-                                    updatedAllProducts[index].productImages = [
-                                      ...(updatedAllProducts[index]
-                                        .productImages || []),
-                                      "",
-                                    ];
+                                    updatedAllProducts[index].productImages![
+                                      imgIndex
+                                    ] = e.target.value;
                                     setSelectedProduct({
                                       ...selectedProduct,
                                       allProducts: updatedAllProducts,
                                     });
                                   }}
-                                >
-                                  Add Image URL
-                                </Button>
-
+                                />
                                 <input
                                   type="file"
                                   accept="image/*"
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      handleImageUpload(file, index);
+                                      handleImageUpload(file, index, imgIndex);
                                     }
                                   }}
-                                  className=""
-                                  id={`upload-image-${index}`}
+                                  className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                 />
+                                <Button
+                                  color="danger"
+                                  size="sm"
+                                  onPress={() => {
+                                    const updatedAllProducts = [
+                                      ...selectedProduct.allProducts,
+                                    ];
+                                    updatedAllProducts[index].productImages =
+                                      updatedAllProducts[
+                                        index
+                                      ].productImages?.filter(
+                                        (_, i) => i !== imgIndex
+                                      );
+                                    setSelectedProduct({
+                                      ...selectedProduct,
+                                      allProducts: updatedAllProducts,
+                                    });
+                                  }}
+                                >
+                                  Remove
+                                </Button>
                               </div>
                             </div>
                           ))}
-                        </>
-                      )}
+                          <Button
+                            color="primary"
+                            size="sm"
+                            className="mt-2"
+                            onPress={() => {
+                              const updatedAllProducts = [
+                                ...selectedProduct.allProducts,
+                              ];
+                              updatedAllProducts[index].productImages = [
+                                ...(updatedAllProducts[index].productImages ||
+                                  []),
+                                "",
+                              ];
+                              setSelectedProduct({
+                                ...selectedProduct,
+                                allProducts: updatedAllProducts,
+                              });
+                            }}
+                          >
+                            Add Image URL
+                          </Button>
+
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(file, index);
+                              }
+                            }}
+                            className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            id={`upload-image-${index}`}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="danger" variant="light" onClick={onClose}>
-                    Cancel
-                  </Button>
-                  <Button color="primary" onClick={handleSave}>
-                    Save
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
         </Modal>
       </div>
     </>

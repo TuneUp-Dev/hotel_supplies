@@ -8,6 +8,7 @@ import axios from "axios";
 interface Product {
   id: string;
   category?: string;
+  categoryImage?: string;
   subcategory?: string;
   name: string;
   products: string[];
@@ -17,7 +18,7 @@ interface Product {
 interface Category {
   id: string;
   title: string;
-  imageUrl: string;
+  categoryImage: string;
   features: string[];
 }
 
@@ -42,7 +43,7 @@ const OurProducts = () => {
             category = {
               id: categoryName.toLowerCase().replace(/\s+/g, "-"),
               title: categoryName,
-              imageUrl: product.imageUrl || "",
+              categoryImage: product.categoryImage || "",
               features: [],
             };
             acc.push(category);
@@ -131,7 +132,7 @@ const OurProducts = () => {
                     zIndex: 0,
                   }}
                 >
-                  <img src={product.imageUrl} alt={""} />
+                  <img src={product.categoryImage} alt={""} />
                 </div>
 
                 {/* Product's Details */}

@@ -8,6 +8,9 @@ import {
   CardHeader,
   Alert,
 } from "@heroui/react";
+import { generate, green, presetPalettes, red } from "@ant-design/colors";
+import { ColorPicker, theme } from "antd";
+import type { ColorPickerProps } from "antd";
 
 interface FormData {
   categoryTitle: string;
@@ -21,6 +24,12 @@ interface FormData {
         productImageUrl: File | null;
         imageUrl?: string;
         productImages: File[];
+        description: string;
+        price: number;
+        availableColors: string[];
+        availableSizes: string[];
+        orderCount: number;
+        totalOrderCount: number;
       }[];
     }[];
   }[];
@@ -30,7 +39,24 @@ interface UploadResponse {
   imageUrl: string;
 }
 
+type Presets = Required<ColorPickerProps>["presets"][number];
+
+function genPresets(presets = presetPalettes) {
+  return Object.entries(presets).map<Presets>(([label, colors]) => ({
+    label,
+    colors,
+    key: label,
+  }));
+}
+
 const ProductForm: React.FC = () => {
+  const { token } = theme.useToken();
+  const presets = genPresets({
+    primary: generate(token.colorPrimary),
+    red,
+    green,
+  });
+  const [tempColor, setTempColor] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     message: string;
     visible: boolean;
@@ -57,7 +83,7 @@ const ProductForm: React.FC = () => {
 
     try {
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app/api/upload",
+        "http://localhost:5003/api/upload",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -198,10 +224,7 @@ const ProductForm: React.FC = () => {
         subCategories: subCategoriesWithImages,
       };
 
-      await axios.post(
-        "https://hotel-supplies-backend.vercel.app/api/categories",
-        payload
-      );
+      await axios.post("http://localhost:5003/api/categories", payload);
 
       setNotification({
         message: "Category added successfully!",
@@ -249,6 +272,12 @@ const ProductForm: React.FC = () => {
       title: "",
       productImageUrl: null,
       productImages: [],
+      description: "",
+      price: 0,
+      availableColors: [],
+      availableSizes: [],
+      orderCount: 0,
+      totalOrderCount: 0,
     });
     setFormData({ ...formData, subCategories: newSubCategories });
   };
@@ -277,9 +306,9 @@ const ProductForm: React.FC = () => {
         </div>
       )}
 
-      <Card className="w-[700px] mx-auto mt-8">
+      <Card className="w-[800px] mx-auto p-3">
         <CardHeader>
-          <h2 className="text-xl font-bold">Add New Category</h2>
+          <h2 className="text-2xl font-bold">Add New Category</h2>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -462,6 +491,269 @@ const ProductForm: React.FC = () => {
                               });
                             }}
                             className="cursor-pointer block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                        </div>
+
+                        {/* Description */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <Input
+                            name="description"
+                            placeholder="Enter product description"
+                            value={allProduct.description}
+                            onChange={(e) => {
+                              const newSubCategories = [
+                                ...formData.subCategories,
+                              ];
+                              newSubCategories[subCategoryIndex].products[
+                                productIndex
+                              ].allProducts[allProductIndex].description =
+                                e.target.value;
+                              setFormData({
+                                ...formData,
+                                subCategories: newSubCategories,
+                              });
+                            }}
+                            fullWidth
+                          />
+                        </div>
+
+                        {/* Price */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Price
+                          </label>
+                          <Input
+                            type="number"
+                            name="price"
+                            placeholder="Enter product price"
+                            value={allProduct.price.toString()}
+                            onChange={(e) => {
+                              const newSubCategories = [
+                                ...formData.subCategories,
+                              ];
+                              newSubCategories[subCategoryIndex].products[
+                                productIndex
+                              ].allProducts[allProductIndex].price = parseFloat(
+                                e.target.value
+                              );
+                              setFormData({
+                                ...formData,
+                                subCategories: newSubCategories,
+                              });
+                            }}
+                            fullWidth
+                          />
+                        </div>
+
+                        {/* Available Colors */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Available Colors
+                            </label>
+
+                            {/* Reset Selected Colors Button */}
+                            <Button
+                              type="button"
+                              onPress={() => {
+                                const newSubCategories = [
+                                  ...formData.subCategories,
+                                ];
+                                newSubCategories[subCategoryIndex].products[
+                                  productIndex
+                                ].allProducts[allProductIndex].availableColors =
+                                  [];
+                                setFormData({
+                                  ...formData,
+                                  subCategories: newSubCategories,
+                                });
+                              }}
+                              className="mb-2"
+                              color="warning"
+                            >
+                              Reset Colors
+                            </Button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {allProduct.availableColors.map(
+                              (color, colorIndex) => (
+                                <div
+                                  key={colorIndex}
+                                  className="flex items-center gap-2 p-2 rounded"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  <span className="text-white">{color}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newSubCategories = [
+                                        ...formData.subCategories,
+                                      ];
+                                      newSubCategories[
+                                        subCategoryIndex
+                                      ].products[productIndex].allProducts[
+                                        allProductIndex
+                                      ].availableColors =
+                                        allProduct.availableColors.filter(
+                                          (_, i) => i !== colorIndex
+                                        );
+                                      setFormData({
+                                        ...formData,
+                                        subCategories: newSubCategories,
+                                      });
+                                    }}
+                                    className="text-white hover:text-red-500"
+                                  >
+                                    &times;
+                                  </button>
+                                </div>
+                              )
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
+                              <ColorPicker
+                                presets={presets}
+                                defaultValue="#3b82f6"
+                                onChange={(color) => {
+                                  setTempColor(color.toHexString());
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                onPress={() => {
+                                  if (tempColor) {
+                                    const newSubCategories = [
+                                      ...formData.subCategories,
+                                    ];
+                                    newSubCategories[subCategoryIndex].products[
+                                      productIndex
+                                    ].allProducts[
+                                      allProductIndex
+                                    ].availableColors = [
+                                      ...allProduct.availableColors,
+                                      tempColor,
+                                    ];
+                                    setFormData({
+                                      ...formData,
+                                      subCategories: newSubCategories,
+                                    });
+                                    setTempColor(null);
+                                  }
+                                }}
+                                disabled={!tempColor}
+                              >
+                                Add Color
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Available Sizes */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Available Sizes
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              "Extra Small",
+                              "Small",
+                              "Medium",
+                              "Large",
+                              "Extra Large",
+                            ].map((size) => (
+                              <Button
+                                key={size}
+                                type="button"
+                                color={
+                                  allProduct.availableSizes.includes(size)
+                                    ? "primary"
+                                    : "default"
+                                }
+                                onPress={() => {
+                                  const newSubCategories = [
+                                    ...formData.subCategories,
+                                  ];
+                                  const sizes =
+                                    newSubCategories[subCategoryIndex].products[
+                                      productIndex
+                                    ].allProducts[allProductIndex]
+                                      .availableSizes;
+                                  const updatedSizes = sizes.includes(size)
+                                    ? sizes.filter((s) => s !== size)
+                                    : [...sizes, size];
+                                  newSubCategories[subCategoryIndex].products[
+                                    productIndex
+                                  ].allProducts[
+                                    allProductIndex
+                                  ].availableSizes = updatedSizes;
+                                  setFormData({
+                                    ...formData,
+                                    subCategories: newSubCategories,
+                                  });
+                                }}
+                              >
+                                {size}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Order Count */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Order Count
+                          </label>
+                          <Input
+                            type="number"
+                            name="orderCount"
+                            placeholder="Enter order count"
+                            value={allProduct.orderCount.toString()}
+                            onChange={(e) => {
+                              const newSubCategories = [
+                                ...formData.subCategories,
+                              ];
+                              newSubCategories[subCategoryIndex].products[
+                                productIndex
+                              ].allProducts[allProductIndex].orderCount =
+                                parseInt(e.target.value);
+                              setFormData({
+                                ...formData,
+                                subCategories: newSubCategories,
+                              });
+                            }}
+                            fullWidth
+                          />
+                        </div>
+
+                        {/* Total Order Count */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Total Order Count
+                          </label>
+                          <Input
+                            type="number"
+                            name="totalOrderCount"
+                            placeholder="Enter total order count"
+                            value={allProduct.totalOrderCount.toString()}
+                            onChange={(e) => {
+                              const newSubCategories = [
+                                ...formData.subCategories,
+                              ];
+                              newSubCategories[subCategoryIndex].products[
+                                productIndex
+                              ].allProducts[allProductIndex].totalOrderCount =
+                                parseInt(e.target.value);
+                              setFormData({
+                                ...formData,
+                                subCategories: newSubCategories,
+                              });
+                            }}
+                            fullWidth
                           />
                         </div>
                       </div>

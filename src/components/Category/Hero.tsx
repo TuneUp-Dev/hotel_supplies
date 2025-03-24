@@ -1,4 +1,4 @@
-import React, { SVGProps, useEffect, useState } from "react";
+import React, { SVGProps, useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   BreadcrumbItem,
@@ -44,8 +44,8 @@ export const ChevronIcon = (props: IconSvgProps) => {
 
 type Product = {
   id: string;
-  name: string;
-  imageUrl: string;
+  title: string;
+  productImageUrl: string;
 };
 
 type Subtopic = {
@@ -200,74 +200,80 @@ const Hero: React.FC = () => {
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       console.log("Fetching products from backend...");
-      const response = await axios.get<Subtopic[]>(
-        "https://hotel-supplies-backend.vercel.app/api/products"
-      );
-      const fetchedSubtopics = response.data;
-      console.log("Fetched subtopics:", fetchedSubtopics);
+      const response = await axios.get("http://localhost:5003/api/categories/");
+      console.log("API Response:", response.data);
 
-      // Validate and transform the data
-      const validatedSubtopics = fetchedSubtopics.map((subtopic) => ({
-        ...subtopic,
-        products: subtopic.products.map((product) => ({
-          ...product,
-          imageUrl:
-            product.imageUrl ||
-            "https://imgs.search.brave.com/_yApi6wFU0dingr3KOPa4qgD6PlrjpS95F461TB78fs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9z/bW9vdGgtZ3JheS1i/YWNrZ3JvdW5kLXdp/dGgtaGlnaC1xdWFs/aXR5XzUzODc2LTEy/NDYwNi5qcGc_c2Vt/dD1haXNfaHlicmlk",
-        })),
-      }));
+      if (!Array.isArray(response.data)) {
+        throw new Error(
+          "Expected an array of subtopics, but got something else."
+        );
+      }
+
+      const fetchedSubtopics = response.data;
 
       const organizedData: Record<string, Record<string, Subtopic[]>> = {};
 
-      validatedSubtopics.forEach((subtopic) => {
+      fetchedSubtopics.forEach((subtopic) => {
         const { category, subcategory } = subtopic;
 
-        if (!organizedData[category]) {
-          organizedData[category] = {};
+        const formattedCategory = formatString(category);
+        const formattedSubcategory = formatString(subcategory);
+
+        if (!organizedData[formattedCategory]) {
+          organizedData[formattedCategory] = {};
         }
-        if (!organizedData[category][subcategory]) {
-          organizedData[category][subcategory] = [];
+        if (!organizedData[formattedCategory][formattedSubcategory]) {
+          organizedData[formattedCategory][formattedSubcategory] = [];
         }
-        organizedData[category][subcategory].push(subtopic);
+
+        const transformedSubtopic: Subtopic = {
+          ...subtopic,
+          products: subtopic.products.map((product: any) => ({
+            id: product.id,
+            title: product.title,
+            productImageUrl: product.productImageUrl,
+          })),
+        };
+
+        organizedData[formattedCategory][formattedSubcategory].push(
+          transformedSubtopic
+        );
       });
 
+      console.log("Organized Data:", organizedData);
       setProductData(organizedData);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, [category, subcategory, subtopic]);
+  }, [category, fetchProducts, subcategory, subtopic]);
 
   useEffect(() => {
     if (!isLoading && Object.keys(productData).length > 0) {
       if (category) {
-        const formattedCategory = Object.keys(productData).find(
-          (key) => formatString(key) === formatString(category)
-        );
+        const formattedCategory = formatString(category);
+        const categoryData = productData[formattedCategory];
 
-        if (formattedCategory) {
-          const categoryData = productData[formattedCategory];
-
+        if (categoryData) {
           if (subcategory) {
-            const formattedSubcategory = Object.keys(categoryData).find(
-              (key) => formatString(key) === formatString(subcategory)
-            );
+            const formattedSubcategory = formatString(subcategory);
+            const subcategoryData = categoryData[formattedSubcategory];
 
-            if (formattedSubcategory) {
-              const subcategoryData = categoryData[formattedSubcategory];
-
+            if (subcategoryData) {
               if (subtopic) {
+                const formattedSubtopic = formatString(subtopic);
                 const selectedSubtopic = subcategoryData.find(
-                  (st) => formatString(st.name) === formatString(subtopic)
+                  (st) => formatString(st.name) === formattedSubtopic
                 );
+
                 if (selectedSubtopic) {
                   console.log(
                     "Setting products for subtopic:",
@@ -276,6 +282,7 @@ const Hero: React.FC = () => {
                   setProducts(selectedSubtopic.products);
                 } else {
                   console.error("Subtopic not found in data:", subtopic);
+                  setProducts([]);
                 }
               } else {
                 console.log(
@@ -289,6 +296,7 @@ const Hero: React.FC = () => {
               }
             } else {
               console.error("Subcategory not found in data:", subcategory);
+              setProducts([]);
             }
           } else {
             console.log("Displaying all products for category:", category);
@@ -299,6 +307,7 @@ const Hero: React.FC = () => {
           }
         } else {
           console.error("Category not found in data:", category);
+          setProducts([]);
         }
       } else {
         console.log("Displaying all products");
@@ -323,7 +332,7 @@ const Hero: React.FC = () => {
   }
 
   const sortedProducts = [...products].sort((a, b) => {
-    if (sortBy === "alphabetical") return a.name.localeCompare(b.name);
+    if (sortBy === "alphabetical") return a.title.localeCompare(b.title);
     if (sortBy === "price") return 0;
     return 0;
   });
@@ -428,7 +437,7 @@ const Hero: React.FC = () => {
     for (const [categoryKey, subcategories] of Object.entries(productData)) {
       for (const [subcategoryKey, subtopics] of Object.entries(subcategories)) {
         const subtopicWithProduct = subtopics.find((st) =>
-          st.products.some((p) => p.name === product.name)
+          st.products.some((p) => p.title === product.title)
         );
 
         if (subtopicWithProduct) {
@@ -442,7 +451,7 @@ const Hero: React.FC = () => {
     }
 
     if (foundCategory && foundSubcategory && foundSubtopic) {
-      const productName = formatString(product.name);
+      const productName = formatString(product.title);
       const url = `/${formatString(foundCategory)}/${formatString(
         foundSubcategory
       )}/${formatString(foundSubtopic)}/${productName}`;
@@ -718,13 +727,13 @@ const Hero: React.FC = () => {
                       onClick={() => handleProductClick(product)}
                     >
                       <img
-                        src={product.imageUrl}
-                        alt={product.name}
+                        src={product.productImageUrl}
+                        alt={product.title}
                         className="w-full h-full object-cover rounded-[20px]"
                       />
                     </div>
                     <h3 className="satoshi text-[18px] sm:text-[20px] md:text-[18px] lg:text-[20px] font-semibold mt-2">
-                      {product.name}
+                      {product.title}
                     </h3>
                   </div>
                 ))

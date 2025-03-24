@@ -17,7 +17,7 @@ if (!admin.apps.length) {
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// POST /api/upload
+// ✅ Image upload
 router.post("/", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {

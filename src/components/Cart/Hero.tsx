@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Breadcrumbs, BreadcrumbItem, Button, Spinner } from "@heroui/react";
-import { Alert } from "@heroui/alert";
+import {
+  Breadcrumbs,
+  BreadcrumbItem,
+  Button,
+  Spinner,
+  Alert,
+} from "@heroui/react";
 import { Popconfirm } from "antd";
 import Arrow from "../../assets/cart_arrow_right.svg";
 import CartIcon from "../../assets/cart.svg";
@@ -32,11 +37,11 @@ const Cart = () => {
   const [contactNumber, setContactNumber] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
     visible: boolean;
-  }>({ message: "", visible: false });
+    type: "success" | "error" | "info" | "warning";
+  }>({ message: "", visible: false, type: "info" });
   const navigate = useNavigate();
 
   const isValidImageUrl = (url: string): boolean => {
@@ -73,7 +78,11 @@ const Cart = () => {
   }, []);
 
   const handleRemoveItem = (index: number) => {
-    setNotification({ message: "Deleting item...", visible: true });
+    setNotification({
+      message: "Deleting item...",
+      visible: true,
+      type: "info",
+    });
 
     try {
       if (Math.random() < 0.2) {
@@ -85,19 +94,24 @@ const Cart = () => {
       setCartItems(updatedCartItems);
       localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
 
-      setNotification({ message: "Item deleted successfully!", visible: true });
+      setNotification({
+        message: "Item deleted successfully!",
+        visible: true,
+        type: "success",
+      });
 
       setTimeout(() => {
-        setNotification({ message: "", visible: false });
+        setNotification({ message: "", visible: false, type: "info" });
       }, 3000);
     } catch (error) {
       setNotification({
         message: "Error: Unable to delete item.",
         visible: true,
+        type: "error",
       });
 
       setTimeout(() => {
-        setNotification({ message: "", visible: false });
+        setNotification({ message: "", visible: false, type: "info" });
       }, 3000);
     }
   };
@@ -105,24 +119,26 @@ const Cart = () => {
   const handleSubmitEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
+    setNotification({
+      message: "Sending enquiry...",
+      visible: true,
+      type: "info",
+    });
 
     try {
-      const response = await fetch(
-        "https://hotel-supplies-backend.vercel.app/send-enquiry",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            contactNumber,
-            message,
-            cartItems,
-          }),
-        }
-      );
+      const response = await fetch("http://localhost:5003/send-enquiry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          contactNumber,
+          message,
+          cartItems,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -135,11 +151,26 @@ const Cart = () => {
       setContactNumber("");
       setMessage("");
 
-      setIsSuccess(true);
-      setTimeout(() => setIsSuccess(false), 5000);
+      setNotification({
+        message: "Enquiry sent successfully!",
+        visible: true,
+        type: "success",
+      });
+
+      setTimeout(() => {
+        setNotification({ message: "", visible: false, type: "info" });
+      }, 5000);
     } catch (error) {
       console.error("Error sending enquiry:", error);
-      alert("Failed to send enquiry. Please try again.");
+      setNotification({
+        message: "Failed to send enquiry. Please try again.",
+        visible: true,
+        type: "error",
+      });
+
+      setTimeout(() => {
+        setNotification({ message: "", visible: false, type: "info" });
+      }, 5000);
     } finally {
       setIsSending(false);
     }
@@ -173,7 +204,6 @@ const Cart = () => {
           localStorage.getItem("cartItems") || "[]"
         ) as CartItem[];
 
-        // Validate image URLs and add fallback if necessary
         const validatedCartItems = storedCartItems.map((item) => ({
           ...item,
           imageUrl: isValidImageUrl(item.imageUrl || "")
@@ -208,14 +238,16 @@ const Cart = () => {
         <div className="fixed top-4 right-4 z-50">
           <Alert
             color={
-              notification.message.includes("Error")
-                ? "warning"
-                : notification.message === "Item deleted successfully!"
+              notification.type === "error"
+                ? "danger"
+                : notification.type === "success"
                 ? "success"
                 : "default"
             }
             title={notification.message}
-            onClose={() => setNotification({ message: "", visible: false })}
+            onClose={() =>
+              setNotification({ message: "", visible: false, type: "info" })
+            }
           />
         </div>
       )}
@@ -246,7 +278,7 @@ const Cart = () => {
                       src={item.imageUrl || CartIcon}
                       alt=""
                       className="w-full h-full object-cover"
-                      onError={handleImageError} // Handle image loading errors
+                      onError={handleImageError}
                     />
                   </div>
 
@@ -266,7 +298,7 @@ const Cart = () => {
                       <b className="font-normal text-black">Color:</b>{" "}
                       {item.color}
                       <span
-                        className="mt-2 w-[40px] h-[40px] sm:w-[25px] sm:h-[25px] md:w-[30px] md:h-[30px] lg:w-[37px] lg:h-[37px] rounded-[4px] flex justify-center items-center"
+                        className="mt-2 w-[40px] h-[40px] sm:w-[25px] sm:h-[25px] md:w-[30px] md:h-[30px] lg:w-[37px] lg:h-[37px] rounded-[4px] flex justify-center items-center border-[1px] border-black/5"
                         style={{ backgroundColor: item.color }}
                       ></span>
                     </p>
@@ -375,8 +407,6 @@ const Cart = () => {
               >
                 {isSending ? (
                   "Sending Enquiry..."
-                ) : isSuccess ? (
-                  "Send Successfully!"
                 ) : (
                   <>
                     Send Enquiry{" "}
