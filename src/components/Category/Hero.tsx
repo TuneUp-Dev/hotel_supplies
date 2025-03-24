@@ -203,7 +203,9 @@ const Hero: React.FC = () => {
   const fetchProducts = useCallback(async () => {
     try {
       console.log("Fetching products from backend...");
-      const response = await axios.get("http://localhost:5003/api/categories/");
+      const response = await axios.get(
+        "https://hotel-supplies-backend.vercel.app//api/categories/"
+      );
       console.log("API Response:", response.data);
 
       if (!Array.isArray(response.data)) {
