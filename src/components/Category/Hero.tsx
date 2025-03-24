@@ -204,7 +204,7 @@ const Hero: React.FC = () => {
     try {
       console.log("Fetching products from backend...");
       const response = await axios.get(
-        "https://hotel-supplies-backend.vercel.app//api/categories/"
+        "https://hotel-supplies-backend.vercel.app/api/categories/"
       );
       console.log("API Response:", response.data);
 
