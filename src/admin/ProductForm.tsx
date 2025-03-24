@@ -83,7 +83,7 @@ const ProductForm: React.FC = () => {
 
     try {
       const response = await axios.post<UploadResponse>(
-        "http://localhost:5003/api/upload",
+        "https://hotel-supplies-backend.vercel.app//api/upload",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -224,7 +224,10 @@ const ProductForm: React.FC = () => {
         subCategories: subCategoriesWithImages,
       };
 
-      await axios.post("http://localhost:5003/api/categories", payload);
+      await axios.post(
+        "https://hotel-supplies-backend.vercel.app//api/categories",
+        payload
+      );
 
       setNotification({
         message: "Category added successfully!",
