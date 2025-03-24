@@ -17,7 +17,7 @@ interface Product {
 
 interface Category {
   id: string;
-  title: string;
+  categoryTitle: string;
   categoryImage: string;
   features: string[];
 }
@@ -30,19 +30,19 @@ const OurProducts = () => {
     setIsLoading(true);
     try {
       const response = await axios.get<Product[]>(
-        "https://hotel-supplies-backend.vercel.appapi/products"
+        "https://hotel-supplies-backend.vercel.app/api/categories"
       );
       console.log("API Response:", response.data);
 
       const transformedProducts: Category[] = response.data.reduce(
         (acc: Category[], product: Product) => {
-          const categoryName = product.category || "UnCategorized";
+          const categoryTitle = product.category || "UnCategorized";
 
-          let category = acc.find((cat) => cat.title === categoryName);
+          let category = acc.find((cat) => cat.categoryTitle === categoryTitle);
           if (!category) {
             category = {
-              id: categoryName.toLowerCase().replace(/\s+/g, "-"),
-              title: categoryName,
+              id: categoryTitle.toLowerCase().replace(/\s+/g, "-"),
+              categoryTitle: categoryTitle,
               categoryImage: product.categoryImage || "",
               features: [],
             };
@@ -143,7 +143,7 @@ const OurProducts = () => {
                   }}
                 >
                   <h1 className="playfair font-medium text-[18px] md:text-[18px] lg:text-[20px] xl:text-[22px] leading-[112%]">
-                    {product.title}
+                    {product.categoryTitle}
                   </h1>
                   <ul className="flex flex-col justify-start items-start gap-y-1 md:gap-y-1.5 lg:gap-y-2 xl:gap-y-3">
                     {product.features.map((feature, index) => {
@@ -155,7 +155,7 @@ const OurProducts = () => {
                         >
                           <a
                             href={`/${generateLink(
-                              product.title
+                              product.categoryTitle
                             )}/${generateLink(feature)}`}
                           >
                             {feature}
