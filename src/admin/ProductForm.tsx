@@ -295,11 +295,11 @@ const ProductForm: React.FC = () => {
                 ? "danger"
                 : notification.message.includes("Failed")
                 ? "danger"
-                : notification.message === "Category Adding..."
+                : notification.message.includes("...")
                 ? "default"
-                : notification.message === "Category added successfully!"
+                : notification.message.includes("!")
                 ? "success"
-                : "warning"
+                : "default"
             }
             title={notification.message}
             onClose={() =>
