@@ -122,14 +122,19 @@ const ProductList: React.FC = () => {
 
   const [newProduct, setNewProduct] = useState({
     name: "",
-    description: "",
-    price: 0,
-    orderCount: 0,
-    totalOrderCount: 0,
-    availableColors: [] as string[],
-    availableSizes: [] as string[],
-    productImageUrl: "",
-    productImages: [] as string[],
+    allProducts: [
+      {
+        title: "",
+        description: "",
+        price: 0,
+        orderCount: 0,
+        totalOrderCount: 0,
+        availableColors: [] as string[],
+        availableSizes: [] as string[],
+        productImageUrl: "",
+        productImages: [] as string[],
+      },
+    ],
   });
 
   const [isSubcategoryModalOpen, setIsSubcategoryModalOpen] = useState(false);
@@ -203,29 +208,22 @@ const ProductList: React.FC = () => {
         throw new Error("Category data not found");
       }
 
-      const productId = newProduct.name
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
-
-      const productsToSend = subcategoryProducts.map((product) => ({
-        name: product.name,
-        id: productId,
-        allProducts: [
-          {
-            name: product.name,
-            description: product.description,
-            price: product.price,
-            orderCount: product.orderCount,
-            totalOrderCount: product.totalOrderCount,
-            availableColors: product.availableColors,
-            availableSizes: product.availableSizes,
-            productImageUrl: product.productImageUrl,
-            productImages: product.productImages,
-          },
-        ],
-      }));
+      const productsToSend = [
+        {
+          name: newProduct.name,
+          allProducts: newProduct.allProducts.map((p) => ({
+            title: p.title || newProduct.name,
+            description: p.description,
+            price: p.price,
+            orderCount: p.orderCount,
+            totalOrderCount: p.totalOrderCount,
+            availableColors: p.availableColors,
+            availableSizes: p.availableSizes,
+            productImageUrl: p.productImageUrl,
+            productImages: p.productImages,
+          })),
+        },
+      ];
 
       const response = await axios.post(
         `https://hotel-supplies-backend.vercel.app/api/subcategories/${encodeURIComponent(
@@ -237,7 +235,7 @@ const ProductList: React.FC = () => {
         }
       );
 
-      console.log(response);
+      console.log("Subcategory added:", response.data);
 
       setAlert({
         message: "Subcategory and products added successfully!",
@@ -245,19 +243,24 @@ const ProductList: React.FC = () => {
         type: "success",
       });
 
+      // Reset form
       setIsSubcategoryModalOpen(false);
       setNewSubcategoryName("");
-      setSubcategoryProducts([]);
-      setNewSubcategoryProduct({
+      setNewProduct({
         name: "",
-        description: "",
-        price: 0,
-        orderCount: 0,
-        totalOrderCount: 0,
-        availableColors: [],
-        availableSizes: [],
-        productImageUrl: "",
-        productImages: [],
+        allProducts: [
+          {
+            title: "",
+            description: "",
+            price: 0,
+            orderCount: 0,
+            totalOrderCount: 0,
+            availableColors: [],
+            availableSizes: [],
+            productImageUrl: "",
+            productImages: [],
+          },
+        ],
       });
 
       await fetchProducts();
@@ -320,19 +323,17 @@ const ProductList: React.FC = () => {
         {
           name: newProduct.name,
           id: productId,
-          allProducts: [
-            {
-              name: newProduct.name,
-              description: newProduct.description,
-              price: newProduct.price,
-              orderCount: newProduct.orderCount,
-              totalOrderCount: newProduct.totalOrderCount,
-              availableColors: newProduct.availableColors,
-              availableSizes: newProduct.availableSizes,
-              productImageUrl: newProduct.productImageUrl,
-              productImages: newProduct.productImages,
-            },
-          ],
+          allProducts: newProduct.allProducts.map((product) => ({
+            title: product.title,
+            description: product.description,
+            price: product.price,
+            orderCount: product.orderCount,
+            totalOrderCount: product.totalOrderCount,
+            availableColors: product.availableColors,
+            availableSizes: product.availableSizes,
+            productImageUrl: product.productImageUrl,
+            productImages: product.productImages,
+          })),
         }
       );
 
@@ -347,14 +348,19 @@ const ProductList: React.FC = () => {
       setIsProductModalOpen(false);
       setNewProduct({
         name: "",
-        description: "",
-        price: 0,
-        orderCount: 0,
-        totalOrderCount: 0,
-        availableColors: [],
-        availableSizes: [],
-        productImageUrl: "",
-        productImages: [],
+        allProducts: [
+          {
+            title: "",
+            description: "",
+            price: 0,
+            orderCount: 0,
+            totalOrderCount: 0,
+            availableColors: [],
+            availableSizes: [],
+            productImageUrl: "",
+            productImages: [],
+          },
+        ],
       });
       fetchProducts();
     } catch (error: any) {
@@ -610,7 +616,7 @@ const ProductList: React.FC = () => {
       setActiveSelectionMode(null);
       fetchProducts();
       setAlert({
-        message: "Deleted Successfully...",
+        message: "Deleted Successfully!",
         visible: true,
         type: "success",
       });
@@ -764,7 +770,7 @@ const ProductList: React.FC = () => {
         };
 
         await axios.put(
-          `https://hotel-supplies-backend.vercel.app/api/products/categories/${selectedProduct.id}`,
+          `https://hotel-supplies-backend.vercel.app/api/categories/${selectedProduct.id}`,
           updateData
         );
 
@@ -785,7 +791,7 @@ const ProductList: React.FC = () => {
         const actualCategoryId = formatId(categoryData.id);
 
         const response = await axios.put(
-          `https://hotel-supplies-backend.vercel.app/api/subcategories/categories/${encodeURIComponent(
+          `https://hotel-supplies-backend.vercel.app/api/subcategories/${encodeURIComponent(
             actualCategoryId
           )}/subcategories/${encodeURIComponent(
             selectedProduct.subcategoryId
@@ -1050,11 +1056,9 @@ const ProductList: React.FC = () => {
                 ? "danger"
                 : alert.message.includes("Failed")
                 ? "danger"
-                : alert.message === "Uploading image..."
+                : alert.message.includes("...")
                 ? "default"
-                : alert.message === "Deleted Successfully..."
-                ? "success"
-                : alert.message === "Image uploaded successfully!"
+                : alert.message.includes("!")
                 ? "success"
                 : "default"
             }
@@ -1568,228 +1572,290 @@ const ProductList: React.FC = () => {
             <div className="space-y-4">
               <Input
                 label="Product Name"
-                value={newSubcategoryProduct.name}
+                value={newProduct.name}
                 onChange={(e) =>
-                  setNewSubcategoryProduct({
-                    ...newSubcategoryProduct,
-                    name: e.target.value,
-                  })
+                  setNewProduct({ ...newProduct, name: e.target.value })
                 }
                 placeholder="Enter product name"
-                required
-              />
-              <Input
-                label="Description"
-                value={newSubcategoryProduct.description}
-                onChange={(e) =>
-                  setNewSubcategoryProduct({
-                    ...newSubcategoryProduct,
-                    description: e.target.value,
-                  })
-                }
-                placeholder="Enter product description"
-              />
-              <Input
-                label="Price"
-                type="number"
-                value={newSubcategoryProduct.price.toString()}
-                onChange={(e) =>
-                  setNewSubcategoryProduct({
-                    ...newSubcategoryProduct,
-                    price: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="Enter product price"
-              />
-              <Input
-                label="Order Count"
-                type="number"
-                value={newSubcategoryProduct.orderCount?.toString() || "0"}
-                onChange={(e) =>
-                  setNewSubcategoryProduct({
-                    ...newSubcategoryProduct,
-                    orderCount: parseInt(e.target.value) || 0,
-                  })
-                }
-                placeholder="Enter order count"
-              />
-              <Input
-                label="Total Order Count"
-                type="number"
-                value={newSubcategoryProduct.totalOrderCount?.toString() || "0"}
-                onChange={(e) =>
-                  setNewSubcategoryProduct({
-                    ...newSubcategoryProduct,
-                    totalOrderCount: parseInt(e.target.value) || 0,
-                  })
-                }
-                placeholder="Enter total order count"
               />
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Available Colors
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {newSubcategoryProduct.availableColors?.map(
-                    (color, colorIndex) => (
-                      <div
-                        key={colorIndex}
-                        className="flex items-center gap-2 p-2 rounded"
-                        style={{ backgroundColor: color }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewSubcategoryProduct({
-                              ...newSubcategoryProduct,
-                              availableColors:
-                                newSubcategoryProduct.availableColors?.filter(
+              {newProduct.allProducts.map((product, index) => (
+                <div key={index} className="space-y-4 border p-4 rounded-lg">
+                  <Button
+                    isIconOnly
+                    color="danger"
+                    variant="flat"
+                    size="sm"
+                    className="top-2 right-2"
+                    onPress={() => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts.splice(index, 1);
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                  >
+                    <img src={Delete} className="w-4" alt="Remove variant" />
+                  </Button>
+
+                  <Input
+                    label={`Variant ${index + 1} Title`}
+                    value={product.title}
+                    onChange={(e) => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts[index].title = e.target.value;
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                    placeholder="Enter variant title"
+                  />
+                  <Input
+                    label="Description"
+                    value={product.description}
+                    onChange={(e) => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts[index].description = e.target.value;
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                    placeholder="Enter product description"
+                  />
+                  <Input
+                    label="Price"
+                    type="number"
+                    value={product.price.toString()}
+                    onChange={(e) => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts[index].price =
+                        parseFloat(e.target.value) || 0;
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                    placeholder="Enter product price"
+                  />
+                  <Input
+                    label="Order Count"
+                    type="number"
+                    value={product.orderCount.toString()}
+                    onChange={(e) => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts[index].orderCount =
+                        parseInt(e.target.value) || 0;
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                    placeholder="Enter order count"
+                  />
+                  <Input
+                    label="Total Order Count"
+                    type="number"
+                    value={product.totalOrderCount.toString()}
+                    onChange={(e) => {
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts[index].totalOrderCount =
+                        parseInt(e.target.value) || 0;
+                      setNewProduct({
+                        ...newProduct,
+                        allProducts: updatedAllProducts,
+                      });
+                    }}
+                    placeholder="Enter total order count"
+                  />
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Available Colors
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.availableColors.map((color, colorIndex) => (
+                        <div
+                          key={colorIndex}
+                          className="flex items-center gap-2 p-2 rounded"
+                          style={{ backgroundColor: color }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedAllProducts = [
+                                ...newProduct.allProducts,
+                              ];
+                              updatedAllProducts[index].availableColors =
+                                updatedAllProducts[
+                                  index
+                                ].availableColors.filter(
                                   (_, i) => i !== colorIndex
-                                ) || [],
+                                );
+                              setNewProduct({
+                                ...newProduct,
+                                allProducts: updatedAllProducts,
+                              });
+                            }}
+                            className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
+                          >
+                            <img className="w-3" src={Cancel} alt="" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <ColorPicker
+                        presets={presets}
+                        defaultValue="#3b82f6"
+                        onChange={(color) => {
+                          setTempColor(color.toHexString());
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onPress={() => {
+                          if (tempColor) {
+                            const updatedAllProducts = [
+                              ...newProduct.allProducts,
+                            ];
+                            updatedAllProducts[index].availableColors = [
+                              ...updatedAllProducts[index].availableColors,
+                              tempColor,
+                            ];
+                            setNewProduct({
+                              ...newProduct,
+                              allProducts: updatedAllProducts,
+                            });
+                            setTempColor(null);
+                          }
+                        }}
+                        disabled={!tempColor}
+                      >
+                        Add Color
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Available Sizes
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        "Extra Small",
+                        "Small",
+                        "Medium",
+                        "Large",
+                        "Extra Large",
+                      ].map((size) => (
+                        <Button
+                          key={size}
+                          type="button"
+                          color={
+                            product.availableSizes.includes(size)
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() => {
+                            const updatedAllProducts = [
+                              ...newProduct.allProducts,
+                            ];
+                            updatedAllProducts[index].availableSizes =
+                              updatedAllProducts[index].availableSizes.includes(
+                                size
+                              )
+                                ? updatedAllProducts[
+                                    index
+                                  ].availableSizes.filter((s) => s !== size)
+                                : [
+                                    ...updatedAllProducts[index].availableSizes,
+                                    size,
+                                  ];
+                            setNewProduct({
+                              ...newProduct,
+                              allProducts: updatedAllProducts,
                             });
                           }}
-                          className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
                         >
-                          <img className="w-3" src={Cancel} alt="" />
-                        </button>
-                      </div>
-                    )
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <ColorPicker
-                    presets={presets}
-                    defaultValue="#3b82f6"
-                    onChange={(color) => {
-                      setTempColor(color.toHexString());
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onPress={() => {
-                      if (tempColor) {
-                        setNewSubcategoryProduct({
-                          ...newSubcategoryProduct,
-                          availableColors: [
-                            ...(newSubcategoryProduct.availableColors || []),
-                            tempColor,
-                          ],
-                        });
-                        setTempColor(null);
-                      }
-                    }}
-                    disabled={!tempColor}
-                  >
-                    Add Color
-                  </Button>
-                </div>
-              </div>
+                          {size}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Available Sizes
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    "Extra Small",
-                    "Small",
-                    "Medium",
-                    "Large",
-                    "Extra Large",
-                  ].map((size) => (
-                    <Button
-                      key={size}
-                      type="button"
-                      color={
-                        newSubcategoryProduct.availableSizes?.includes(size)
-                          ? "primary"
-                          : "default"
-                      }
-                      onPress={() => {
-                        setNewSubcategoryProduct({
-                          ...newSubcategoryProduct,
-                          availableSizes:
-                            newSubcategoryProduct.availableSizes?.includes(size)
-                              ? newSubcategoryProduct.availableSizes.filter(
-                                  (s) => s !== size
-                                )
-                              : [
-                                  ...(newSubcategoryProduct.availableSizes ||
-                                    []),
-                                  size,
-                                ],
-                        });
-                      }}
-                    >
-                      {size}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    {newSubcategoryProduct.productImageUrl && (
-                      <Image
-                        src={newSubcategoryProduct.productImageUrl}
-                        alt="Product"
-                        width={50}
-                        height={50}
-                        className="rounded"
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0">
+                      {product.productImageUrl && (
+                        <Image
+                          src={product.productImageUrl}
+                          alt="Product"
+                          width={50}
+                          height={50}
+                          className="rounded"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-grow">
+                      <Input
+                        label="Product Image URL"
+                        value={product.productImageUrl}
+                        onChange={(e) => {
+                          const updatedAllProducts = [
+                            ...newProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].productImageUrl =
+                            e.target.value;
+                          setNewProduct({
+                            ...newProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                        placeholder="Enter product image URL"
                       />
-                    )}
-                  </div>
-                  <div className="flex-grow">
-                    <Input
-                      label="Product Image URL"
-                      value={newSubcategoryProduct.productImageUrl || ""}
-                      onChange={(e) =>
-                        setNewSubcategoryProduct({
-                          ...newSubcategoryProduct,
-                          productImageUrl: e.target.value,
-                        })
-                      }
-                      placeholder="Enter product image URL"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          axios
-                            .post<UploadResponse>(
-                              "https://hotel-supplies-backend.vercel.app/api/upload",
-                              formData,
-                              {
-                                headers: {
-                                  "Content-Type": "multipart/form-data",
-                                },
-                              }
-                            )
-                            .then((response) => {
-                              setNewSubcategoryProduct({
-                                ...newSubcategoryProduct,
-                                productImageUrl: response.data.imageUrl,
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            axios
+                              .post<UploadResponse>(
+                                "https://hotel-supplies-backend.vercel.app/api/upload",
+                                formData,
+                                {
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              )
+                              .then((response) => {
+                                const updatedAllProducts = [
+                                  ...newProduct.allProducts,
+                                ];
+                                updatedAllProducts[index].productImageUrl =
+                                  response.data.imageUrl;
+                                setNewProduct({
+                                  ...newProduct,
+                                  allProducts: updatedAllProducts,
+                                });
                               });
-                            });
-                        }
-                      }}
-                      className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
+                          }
+                        }}
+                        className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Additional Product Images
-                  </label>
-                  {newSubcategoryProduct.productImages?.map(
-                    (image, imgIndex) => (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      Additional Product Images
+                    </label>
+                    {product.productImages?.map((image, imgIndex) => (
                       <div key={imgIndex} className="flex gap-4">
                         <div className="flex-shrink-0">
                           {image && (
@@ -1806,13 +1872,15 @@ const ProductList: React.FC = () => {
                           <Input
                             value={image}
                             onChange={(e) => {
-                              const updatedImages = [
-                                ...(newSubcategoryProduct.productImages || []),
+                              const updatedAllProducts = [
+                                ...newProduct.allProducts,
                               ];
-                              updatedImages[imgIndex] = e.target.value;
-                              setNewSubcategoryProduct({
-                                ...newSubcategoryProduct,
-                                productImages: updatedImages,
+                              updatedAllProducts[index].productImages![
+                                imgIndex
+                              ] = e.target.value;
+                              setNewProduct({
+                                ...newProduct,
+                                allProducts: updatedAllProducts,
                               });
                             }}
                             placeholder="Enter image URL"
@@ -1836,15 +1904,15 @@ const ProductList: React.FC = () => {
                                     }
                                   )
                                   .then((response) => {
-                                    const updatedImages = [
-                                      ...(newSubcategoryProduct.productImages ||
-                                        []),
+                                    const updatedAllProducts = [
+                                      ...newProduct.allProducts,
                                     ];
-                                    updatedImages[imgIndex] =
-                                      response.data.imageUrl;
-                                    setNewSubcategoryProduct({
-                                      ...newSubcategoryProduct,
-                                      productImages: updatedImages,
+                                    updatedAllProducts[index].productImages![
+                                      imgIndex
+                                    ] = response.data.imageUrl;
+                                    setNewProduct({
+                                      ...newProduct,
+                                      allProducts: updatedAllProducts,
                                     });
                                   });
                               }
@@ -1855,11 +1923,16 @@ const ProductList: React.FC = () => {
                             color="danger"
                             size="sm"
                             onPress={() => {
-                              setNewSubcategoryProduct({
-                                ...newSubcategoryProduct,
-                                productImages: (
-                                  newSubcategoryProduct.productImages || []
-                                ).filter((_, i) => i !== imgIndex),
+                              const updatedAllProducts = [
+                                ...newProduct.allProducts,
+                              ];
+                              updatedAllProducts[index].productImages =
+                                updatedAllProducts[index].productImages?.filter(
+                                  (_, i) => i !== imgIndex
+                                );
+                              setNewProduct({
+                                ...newProduct,
+                                allProducts: updatedAllProducts,
                               });
                             }}
                           >
@@ -1867,60 +1940,56 @@ const ProductList: React.FC = () => {
                           </Button>
                         </div>
                       </div>
-                    )
-                  )}
-                  <Button
-                    color="primary"
-                    size="sm"
-                    className="mt-2"
-                    onPress={() => {
-                      setNewSubcategoryProduct({
-                        ...newSubcategoryProduct,
-                        productImages: [
-                          ...(newSubcategoryProduct.productImages || []),
+                    ))}
+                    <Button
+                      color="primary"
+                      size="sm"
+                      className="mt-2"
+                      onPress={() => {
+                        const updatedAllProducts = [...newProduct.allProducts];
+                        updatedAllProducts[index].productImages = [
+                          ...(updatedAllProducts[index].productImages || []),
                           "",
-                        ],
-                      });
-                    }}
-                  >
-                    Add Image URL
-                  </Button>
+                        ];
+                        setNewProduct({
+                          ...newProduct,
+                          allProducts: updatedAllProducts,
+                        });
+                      }}
+                    >
+                      Add Image URL
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ))}
 
               <Button
-                onPress={addProductToSubcategory}
-                className="mt-4"
-                disabled={!newSubcategoryProduct.name.trim()}
+                color="primary"
+                size="sm"
+                className="mt-2"
+                onPress={() => {
+                  setNewProduct({
+                    ...newProduct,
+                    allProducts: [
+                      ...newProduct.allProducts,
+                      {
+                        title: "",
+                        description: "",
+                        price: 0,
+                        orderCount: 0,
+                        totalOrderCount: 0,
+                        availableColors: [],
+                        availableSizes: [],
+                        productImageUrl: "",
+                        productImages: [],
+                      },
+                    ],
+                  });
+                }}
               >
-                Add Product
+                Add Product Variant
               </Button>
             </div>
-
-            {subcategoryProducts.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-2">
-                  Products in this Subcategory
-                </h3>
-                <div className="space-y-2">
-                  {subcategoryProducts.map((product, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-gray-100 rounded"
-                    >
-                      <span>{product.name}</span>
-                      <Button
-                        size="sm"
-                        color="danger"
-                        onPress={() => removeProductFromSubcategory(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </Modal>
 
@@ -1959,296 +2028,259 @@ const ProductList: React.FC = () => {
               }
               placeholder="Enter product name"
             />
-            <Input
-              label="Description"
-              value={newProduct.description}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, description: e.target.value })
-              }
-              placeholder="Enter product description"
-            />
-            <Input
-              label="Price"
-              type="number"
-              value={newProduct.price.toString()}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  price: parseFloat(e.target.value) || 0,
-                })
-              }
-              placeholder="Enter product price"
-            />
-            <Input
-              label="Order Count"
-              type="number"
-              value={newProduct.orderCount.toString()}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  orderCount: parseInt(e.target.value) || 0,
-                })
-              }
-              placeholder="Enter order count"
-            />
-            <Input
-              label="Total Order Count"
-              type="number"
-              value={newProduct.totalOrderCount.toString()}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  totalOrderCount: parseInt(e.target.value) || 0,
-                })
-              }
-              placeholder="Enter total order count"
-            />
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Available Colors
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {newProduct.availableColors.map((color, colorIndex) => (
-                  <div
-                    key={colorIndex}
-                    className="flex items-center gap-2 p-2 rounded"
-                    style={{ backgroundColor: color }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewProduct({
-                          ...newProduct,
-                          availableColors: newProduct.availableColors.filter(
-                            (_, i) => i !== colorIndex
-                          ),
-                        });
-                      }}
-                      className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
-                    >
-                      <img className="w-3" src={Cancel} alt="" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <div className="flex gap-2 items-center">
-                  <ColorPicker
-                    presets={presets}
-                    defaultValue="#3b82f6"
-                    onChange={(color) => {
-                      setTempColor(color.toHexString());
-                    }}
-                  />
+            {newProduct.allProducts.map((product, index) => (
+              <div key={index} className="space-y-4 border p-4 rounded-lg">
+                <div className="flex justify-end items-start">
                   <Button
-                    type="button"
+                    isIconOnly
+                    size="sm"
+                    color="danger"
+                    variant="flat"
+                    className="top-2 right-2"
                     onPress={() => {
-                      if (tempColor) {
-                        setNewProduct({
-                          ...newProduct,
-                          availableColors: [
-                            ...newProduct.availableColors,
-                            tempColor,
-                          ],
-                        });
-                        setTempColor(null);
-                      }
-                    }}
-                    disabled={!tempColor}
-                  >
-                    Add Color
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Available Sizes
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {["Extra Small", "Small", "Medium", "Large", "Extra Large"].map(
-                  (size) => (
-                    <Button
-                      key={size}
-                      type="button"
-                      color={
-                        newProduct.availableSizes.includes(size)
-                          ? "primary"
-                          : "default"
-                      }
-                      onPress={() => {
-                        setNewProduct({
-                          ...newProduct,
-                          availableSizes: newProduct.availableSizes.includes(
-                            size
-                          )
-                            ? newProduct.availableSizes.filter(
-                                (s) => s !== size
-                              )
-                            : [...newProduct.availableSizes, size],
-                        });
-                      }}
-                    >
-                      {size}
-                    </Button>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0">
-                  {newProduct.productImageUrl && (
-                    <Image
-                      src={newProduct.productImageUrl}
-                      alt="Product"
-                      width={50}
-                      height={50}
-                      className="rounded"
-                    />
-                  )}
-                </div>
-                <div className="flex-grow">
-                  <Input
-                    label="Product Image URL"
-                    value={newProduct.productImageUrl}
-                    onChange={(e) =>
+                      const updatedAllProducts = [...newProduct.allProducts];
+                      updatedAllProducts.splice(index, 1);
                       setNewProduct({
                         ...newProduct,
-                        productImageUrl: e.target.value,
-                      })
-                    }
-                    placeholder="Enter product image URL"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        axios
-                          .post<UploadResponse>(
-                            "https://hotel-supplies-backend.vercel.app/api/upload",
-                            formData,
-                            {
-                              headers: {
-                                "Content-Type": "multipart/form-data",
-                              },
-                            }
-                          )
-                          .then((response) => {
-                            setNewProduct({
-                              ...newProduct,
-                              productImageUrl: response.data.imageUrl,
-                            });
-                          });
-                      }
+                        allProducts: updatedAllProducts,
+                      });
                     }}
-                    className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
+                  >
+                    <img src={Delete} className="w-4" alt="Remove variant" />
+                  </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Product Images
-                </label>
-                {newProduct.productImages.map((image, imgIndex) => (
-                  <div key={imgIndex} className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      {image && (
-                        <Image
-                          src={image}
-                          alt={`Product image ${imgIndex}`}
-                          width={40}
-                          height={40}
-                          className="rounded"
-                        />
-                      )}
-                    </div>
-                    <div className="flex-grow flex gap-2">
-                      <Input
-                        value={image}
-                        onChange={(e) => {
-                          const updatedImages = [...newProduct.productImages];
-                          updatedImages[imgIndex] = e.target.value;
-                          setNewProduct({
-                            ...newProduct,
-                            productImages: updatedImages,
-                          });
-                        }}
-                        placeholder="Enter image URL"
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const formData = new FormData();
-                            formData.append("file", file);
-                            axios
-                              .post<UploadResponse>(
-                                "https://hotel-supplies-backend.vercel.app/api/upload",
-                                formData,
-                                {
-                                  headers: {
-                                    "Content-Type": "multipart/form-data",
-                                  },
-                                }
-                              )
-                              .then((response) => {
-                                const updatedImages = [
-                                  ...newProduct.productImages,
-                                ];
-                                updatedImages[imgIndex] =
-                                  response.data.imageUrl;
-                                setNewProduct({
-                                  ...newProduct,
-                                  productImages: updatedImages,
-                                });
-                              });
-                          }
-                        }}
-                        className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                      <Button
-                        color="danger"
-                        size="sm"
-                        onPress={() => {
-                          setNewProduct({
-                            ...newProduct,
-                            productImages: newProduct.productImages.filter(
-                              (_, i) => i !== imgIndex
-                            ),
-                          });
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  color="primary"
-                  size="sm"
-                  className="mt-2"
-                  onPress={() => {
+                <Input
+                  label={`Variant ${index + 1} Title`}
+                  value={product.title}
+                  onChange={(e) => {
+                    const updatedAllProducts = [...newProduct.allProducts];
+                    updatedAllProducts[index].title = e.target.value;
                     setNewProduct({
                       ...newProduct,
-                      productImages: [...newProduct.productImages, ""],
+                      allProducts: updatedAllProducts,
                     });
                   }}
-                >
-                  Add Image URL
-                </Button>
+                  placeholder="Enter variant title"
+                />
+                <Input
+                  label="Description"
+                  value={product.description}
+                  onChange={(e) => {
+                    const updatedAllProducts = [...newProduct.allProducts];
+                    updatedAllProducts[index].description = e.target.value;
+                    setNewProduct({
+                      ...newProduct,
+                      allProducts: updatedAllProducts,
+                    });
+                  }}
+                  placeholder="Enter product description"
+                />
+                <Input
+                  label="Price"
+                  type="number"
+                  value={product.price.toString()}
+                  onChange={(e) => {
+                    const updatedAllProducts = [...newProduct.allProducts];
+                    updatedAllProducts[index].price =
+                      parseFloat(e.target.value) || 0;
+                    setNewProduct({
+                      ...newProduct,
+                      allProducts: updatedAllProducts,
+                    });
+                  }}
+                  placeholder="Enter product price"
+                />
+                <Input
+                  label="Order Count"
+                  type="number"
+                  value={product.orderCount.toString()}
+                  onChange={(e) => {
+                    const updatedAllProducts = [...newProduct.allProducts];
+                    updatedAllProducts[index].orderCount =
+                      parseFloat(e.target.value) || 0;
+                    setNewProduct({
+                      ...newProduct,
+                      allProducts: updatedAllProducts,
+                    });
+                  }}
+                  placeholder="Enter product price"
+                />
+                <Input
+                  label="Total Order Count"
+                  type="number"
+                  value={product.totalOrderCount.toString()}
+                  onChange={(e) => {
+                    const updatedAllProducts = [...newProduct.allProducts];
+                    updatedAllProducts[index].totalOrderCount =
+                      parseFloat(e.target.value) || 0;
+                    setNewProduct({
+                      ...newProduct,
+                      allProducts: updatedAllProducts,
+                    });
+                  }}
+                  placeholder="Enter product price"
+                />
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Available Colors
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {product.availableColors.map((color, colorIndex) => (
+                      <div
+                        key={colorIndex}
+                        className="flex items-center gap-2 p-2 rounded"
+                        style={{ backgroundColor: color }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedAllProducts = [
+                              ...newProduct.allProducts,
+                            ];
+                            updatedAllProducts[index].availableColors =
+                              updatedAllProducts[index].availableColors.filter(
+                                (_, i) => i !== colorIndex
+                              );
+                            setNewProduct({
+                              ...newProduct,
+                              allProducts: updatedAllProducts,
+                            });
+                          }}
+                          className="ml-8 flex justify-center items-center bg-white/50 border rounded p-1"
+                        >
+                          <img className="w-3" src={Cancel} alt="" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <ColorPicker
+                      presets={presets}
+                      defaultValue="#3b82f6"
+                      onChange={(color) => {
+                        setTempColor(color.toHexString());
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      onPress={() => {
+                        if (tempColor) {
+                          const updatedAllProducts = [
+                            ...newProduct.allProducts,
+                          ];
+                          updatedAllProducts[index].availableColors = [
+                            ...updatedAllProducts[index].availableColors,
+                            tempColor,
+                          ];
+                          setNewProduct({
+                            ...newProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                          setTempColor(null);
+                        }
+                      }}
+                      disabled={!tempColor}
+                    >
+                      Add Color
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Add similar sections for sizes, images, etc. */}
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    {product.productImageUrl && (
+                      <Image
+                        src={product.productImageUrl}
+                        alt="Product"
+                        width={50}
+                        height={50}
+                        className="rounded"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-grow">
+                    <Input
+                      label="Product Image URL"
+                      value={product.productImageUrl}
+                      onChange={(e) => {
+                        const updatedAllProducts = [...newProduct.allProducts];
+                        updatedAllProducts[index].productImageUrl =
+                          e.target.value;
+                        setNewProduct({
+                          ...newProduct,
+                          allProducts: updatedAllProducts,
+                        });
+                      }}
+                      placeholder="Enter product image URL"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          axios
+                            .post<UploadResponse>(
+                              "https://hotel-supplies-backend.vercel.app/api/upload",
+                              formData,
+                              {
+                                headers: {
+                                  "Content-Type": "multipart/form-data",
+                                },
+                              }
+                            )
+                            .then((response) => {
+                              const updatedAllProducts = [
+                                ...newProduct.allProducts,
+                              ];
+                              updatedAllProducts[index].productImageUrl =
+                                response.data.imageUrl;
+                              setNewProduct({
+                                ...newProduct,
+                                allProducts: updatedAllProducts,
+                              });
+                            });
+                        }
+                      }}
+                      className="cursor-pointer block w-full mt-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
+
+            <Button
+              color="primary"
+              size="sm"
+              className="mt-2"
+              onPress={() => {
+                setNewProduct({
+                  ...newProduct,
+                  allProducts: [
+                    ...newProduct.allProducts,
+                    {
+                      title: "",
+                      description: "",
+                      price: 0,
+                      orderCount: 0,
+                      totalOrderCount: 0,
+                      availableColors: [],
+                      availableSizes: [],
+                      productImageUrl: "",
+                      productImages: [],
+                    },
+                  ],
+                });
+              }}
+            >
+              Add Product Variant
+            </Button>
           </div>
         </Modal>
 
@@ -2711,6 +2743,32 @@ const ProductList: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                  <Button
+                    color="primary"
+                    size="sm"
+                    className="mt-2"
+                    onPress={() => {
+                      setSelectedProduct({
+                        ...selectedProduct,
+                        allProducts: [
+                          ...selectedProduct.allProducts,
+                          {
+                            title: "",
+                            description: "",
+                            price: 0,
+                            orderCount: 0,
+                            totalOrderCount: 0,
+                            availableColors: [],
+                            availableSizes: [],
+                            productImageUrl: "",
+                            productImages: [],
+                          },
+                        ],
+                      });
+                    }}
+                  >
+                    Add Product
+                  </Button>
                 </>
               )}
             </div>
