@@ -14,8 +14,84 @@ function formatString(str) {
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/\//g, "@")
+    .replace(/\+/g, "+")
     .replace(/[^a-z0-9-@]/g, "");
 }
+
+// ✅ Add new product
+router.post(
+  "/:categoryId/subcategories/:subcategoryId/products",
+  async (req, res) => {
+    try {
+      const { categoryId, subcategoryId } = req.params;
+      const { name, allProducts } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ message: "Product name is required" });
+      }
+
+      const categoryRef = db.collection("Categories").doc(categoryId);
+
+      const categoryDoc = await categoryRef.get();
+      if (!categoryDoc.exists) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+
+      const subcategoryRef = categoryRef
+        .collection("SubCategories")
+        .doc(subcategoryId);
+
+      const subcategoryDoc = await subcategoryRef.get();
+      if (!subcategoryDoc.exists) {
+        return res.status(404).json({ message: "Subcategory not found" });
+      }
+
+      const productId = name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/&/g, "");
+
+      const productData = {
+        id: productId,
+        name: name,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (Array.isArray(allProducts) && allProducts.length > 0) {
+        productData.allProducts = allProducts.map((product) => ({
+          ...product,
+
+          productImageUrl: product.productImageUrl || "",
+          productImages: product.productImages || [],
+          description: product.description || "",
+          price: Number(product.price) || 0,
+          orderCount: Number(product.orderCount) || 0,
+          totalOrderCount: Number(product.totalOrderCount) || 0,
+          availableColors: Array.isArray(product.availableColors)
+            ? product.availableColors
+            : [],
+          availableSizes: Array.isArray(product.availableSizes)
+            ? product.availableSizes
+            : [],
+        }));
+      } else {
+        productData.allProducts = [];
+      }
+
+      const productRef = subcategoryRef.collection("Products").doc(productId);
+      await productRef.set(productData);
+
+      res.status(201).json({
+        message: "Product added successfully",
+        productId: productId,
+        product: productData,
+      });
+    } catch (error) {
+      console.error("Error adding product:", error);
+      res.status(500).json({ message: "Failed to add product" });
+    }
+  }
+);
 
 // ✅ Fetch All Products
 router.get("/", async (req, res) => {
@@ -125,7 +201,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Fetch a Specific Product
+// ✅ Fetch a Specific Product (USER)
 router.get(
   "/:category/:subcategory/:product/:productName",
   async (req, res) => {
@@ -226,120 +302,106 @@ router.get(
   }
 );
 
-// ✅ Edit a Category
-router.put("/category/:category", async (req, res) => {
-  try {
-    const { category } = req.params;
-    const { categoryTitle, categoryImage } = req.body;
-
-    const formattedCategoryId = formatString(categoryTitle);
-
-    const categoryDoc = await db.collection("Categories").doc(category).get();
-
-    if (!categoryDoc.exists) {
-      console.error("❌ Category not found:", category);
-      return res.status(404).send("Category not found.");
-    }
-
-    if (category !== formattedCategoryId) {
-      await db
-        .collection("Categories")
-        .doc(formattedCategoryId)
-        .set({ categoryTitle, categoryImage });
-
-      // Delete the old document
-      await db.collection("Categories").doc(category).delete();
-    } else {
-      await db
-        .collection("Categories")
-        .doc(category)
-        .update({ categoryTitle, categoryImage });
-    }
-
-    res.status(200).send("Category updated successfully.");
-  } catch (err) {
-    console.error("❌ Error updating category:", err);
-    res.status(500).send("Server error.");
-  }
-});
-
 // ✅ Update a Product
 router.put(
-  "/category/:category/subcategory/:subcategory/product/:product",
+  "/:categoryId/subcategories/:subcategoryId/products/:productId",
   async (req, res) => {
     try {
-      const { category, subcategory, product } = req.params;
-      const updatedProductData = req.body;
+      const { categoryId, subcategoryId, productId } = req.params;
+      const { name, allProducts } = req.body;
 
-      // Format the IDs to match document IDs
-      const formattedCategoryId = formatString(category);
-      const formattedSubcategoryId = formatString(subcategory);
-      const formattedProductId = formatString(product);
+      // Validate IDs exist
+      if (!categoryId || !subcategoryId || !productId) {
+        return res.status(400).send("Missing required IDs");
+      }
 
-      // Update the product document
-      await db
-        .collection("Categories")
-        .doc(formattedCategoryId)
+      const categoryRef = db.collection("Categories").doc(categoryId);
+      const categoryDoc = await categoryRef.get();
+      if (!categoryDoc.exists) {
+        return res.status(404).send("Category not found");
+      }
+
+      const subcategoryRef = categoryRef
         .collection("SubCategories")
-        .doc(formattedSubcategoryId)
+        .doc(subcategoryId);
+      const subcategoryDoc = await subcategoryRef.get();
+      if (!subcategoryDoc.exists) {
+        return res.status(404).send("Subcategory not found");
+      }
+
+      // Validate required fields
+      if (!name || !allProducts || !Array.isArray(allProducts)) {
+        return res.status(400).send("Invalid product data structure");
+      }
+
+      // Format the new ID based on the product name
+      const newProductId = formatString(name);
+
+      const productRef = db
+        .collection("Categories")
+        .doc(categoryId)
+        .collection("SubCategories")
+        .doc(subcategoryId)
         .collection("Products")
-        .doc(formattedProductId)
-        .update(updatedProductData);
+        .doc(productId);
 
-      res.status(200).send("Product updated successfully.");
-    } catch (err) {
-      console.error("❌ Error updating product:", err);
-      res.status(500).send("Server error.");
-    }
-  }
-);
+      // Check if the product exists
+      const productDoc = await productRef.get();
+      if (!productDoc.exists) {
+        return res.status(404).send("Product not found");
+      }
 
-// ✅ Delete a Category
-router.delete("/category/:category", async (req, res) => {
-  try {
-    const { category } = req.params;
+      // If the ID is changing, we need to migrate the document
+      if (productId !== newProductId) {
+        const newProductRef = db
+          .collection("Categories")
+          .doc(categoryId)
+          .collection("SubCategories")
+          .doc(subcategoryId)
+          .collection("Products")
+          .doc(newProductId);
 
-    const formattedCategoryId = formatString(category);
+        // Check if new ID already exists
+        const newDoc = await newProductRef.get();
+        if (newDoc.exists) {
+          return res.status(400).send("Product with this name already exists");
+        }
 
-    await db.collection("Categories").doc(formattedCategoryId).delete();
+        // Create the new document with updated data
+        await newProductRef.set({
+          id: newProductId,
+          name,
+          allProducts,
+        });
 
-    res.status(200).send("Category deleted successfully.");
-  } catch (err) {
-    console.error("❌ Error deleting category:", err);
-    res.status(500).send("Server error.");
-  }
-});
+        // Delete the old document
+        await productRef.delete();
+      } else {
+        // Just update the existing document if ID isn't changing
+        await productRef.update({
+          name,
+          allProducts,
+        });
+      }
 
-// ✅ Delete a Subcategory
-router.delete(
-  "/category/:category/subcategory/:subcategory",
-  async (req, res) => {
-    try {
-      const { category, subcategory } = req.params;
-
-      // Format the IDs to match document IDs
-      const formattedCategoryId = formatString(category);
-      const formattedSubcategoryId = formatString(subcategory);
-
-      // Delete the subcategory document
-      await db
-        .collection("Categories")
-        .doc(formattedCategoryId)
-        .collection("SubCategories")
-        .doc(formattedSubcategoryId)
-        .delete();
-
-      res.status(200).send("Subcategory deleted successfully.");
-    } catch (err) {
-      console.error("❌ Error deleting subcategory:", err);
-      res.status(500).send("Server error.");
+      res.status(200).json({
+        message: "Product updated successfully",
+        updatedProduct: {
+          id: productId !== newProductId ? newProductId : productId,
+          name,
+          allProducts,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).send("Server error");
     }
   }
 );
 
 // ✅ Delete a Product
 router.delete(
-  "/category/:category/subcategory/:subcategory/product/:product",
+  "/:category/subcategory/:subcategory/product/:product",
   async (req, res) => {
     try {
       const { category, subcategory, product } = req.params;
@@ -382,86 +444,5 @@ router.delete(
     }
   }
 );
-
-// ✅ Bulk Delete Categories, Subcategories, or Products
-router.delete("/bulk", async (req, res) => {
-  try {
-    const { ids, type } = req.body;
-
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).send("Invalid IDs provided.");
-    }
-
-    if (!type || !["category", "subcategory", "product"].includes(type)) {
-      return res.status(400).send("Invalid type provided.");
-    }
-
-    // Validate each ID in the array
-    for (const id of ids) {
-      if (!id || typeof id !== "string") {
-        return res.status(400).send(`Invalid ID: ${id}`);
-      }
-    }
-
-    // Delete categories
-    if (type === "category") {
-      for (const categoryId of ids) {
-        const formattedCategoryId = formatString(categoryId);
-        await db.collection("Categories").doc(formattedCategoryId).delete();
-      }
-    }
-
-    // Delete subcategories
-    if (type === "subcategory") {
-      for (const subcategoryId of ids) {
-        const [categoryId, subcategoryIdOnly] = subcategoryId.split("::");
-        if (!categoryId || !subcategoryIdOnly) {
-          return res
-            .status(400)
-            .send(`Invalid subcategory ID: ${subcategoryId}`);
-        }
-
-        const formattedCategoryId = formatString(categoryId);
-        const formattedSubcategoryId = formatString(subcategoryIdOnly);
-
-        await db
-          .collection("Categories")
-          .doc(formattedCategoryId)
-          .collection("SubCategories")
-          .doc(formattedSubcategoryId)
-          .delete();
-      }
-    }
-
-    // Delete products
-    if (type === "product") {
-      for (const productId of ids) {
-        const [categoryId, subcategoryId, productIdOnly] =
-          productId.split("::");
-        if (!categoryId || !subcategoryId || !productIdOnly) {
-          return res.status(400).send(`Invalid product ID: ${productId}`);
-        }
-
-        const formattedCategoryId = formatString(categoryId);
-        const formattedSubcategoryId = formatString(subcategoryId);
-        const formattedProductId = formatString(productIdOnly);
-
-        await db
-          .collection("Categories")
-          .doc(formattedCategoryId)
-          .collection("SubCategories")
-          .doc(formattedSubcategoryId)
-          .collection("Products")
-          .doc(formattedProductId)
-          .delete();
-      }
-    }
-
-    res.status(200).send("Bulk deletion successful.");
-  } catch (err) {
-    console.error("❌ Error during bulk deletion:", err);
-    res.status(500).send("Server error.");
-  }
-});
 
 module.exports = router;

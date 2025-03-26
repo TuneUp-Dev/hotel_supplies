@@ -22,13 +22,15 @@ import { ColorPicker, theme, Modal } from "antd";
 interface Product {
   id: string;
   category: string;
+  originalCategoryId?: string;
   categoryTitle?: string;
   categoryImage?: string;
   subcategory: string;
   subcategoryId: string;
-  title: string;
+  name: string;
+  productId: string;
   allProducts: {
-    name: string;
+    title: string;
     productImageUrl?: string;
     productImages?: string[];
     description: string;
@@ -49,6 +51,7 @@ interface Category {
   subcategory: string;
   subcategoryId: string;
   title: string;
+  productId: string;
   allProducts: {
     name: string;
     productImageUrl?: string;
@@ -200,8 +203,15 @@ const ProductList: React.FC = () => {
         throw new Error("Category data not found");
       }
 
+      const productId = newProduct.name
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+
       const productsToSend = subcategoryProducts.map((product) => ({
         name: product.name,
+        id: productId,
         allProducts: [
           {
             name: product.name,
@@ -218,7 +228,7 @@ const ProductList: React.FC = () => {
       }));
 
       const response = await axios.post(
-        `https://hotel-supplies-backend.vercel.app/api/categories/${encodeURIComponent(
+        `http://localhost:5003/api/subcategories/${encodeURIComponent(
           categoryData.id
         )}/subcategories`,
         {
@@ -288,6 +298,12 @@ const ProductList: React.FC = () => {
         throw new Error("Subcategory data not found");
       }
 
+      const productId = newProduct.name
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+
       const [subcategoryName, products] = subcategoryEntry;
       const subcategoryId = products[0]?.subcategoryId;
 
@@ -298,11 +314,12 @@ const ProductList: React.FC = () => {
       }
 
       const response = await axios.post(
-        `https://hotel-supplies-backend.vercel.app/api/categories/${encodeURIComponent(
+        `http://localhost:5003/api/products/${encodeURIComponent(
           categoryData.id
         )}/subcategories/${encodeURIComponent(subcategoryId)}/products`,
         {
           name: newProduct.name,
+          id: productId,
           allProducts: [
             {
               name: newProduct.name,
@@ -386,93 +403,89 @@ const ProductList: React.FC = () => {
     const grouped: GroupedProducts = {};
 
     products.forEach((product) => {
-      if (!grouped[product.category]) {
-        grouped[product.category] = {
-          id: formatString(product.category),
+      const categoryKey = product.category.toLowerCase();
+
+      if (!grouped[categoryKey]) {
+        grouped[categoryKey] = {
+          id: formatId(product.originalCategoryId || product.category),
           categoryImage: product.categoryImage || "",
           subcategories: {},
         };
       }
-      if (!grouped[product.category].subcategories[product.subcategory]) {
-        grouped[product.category].subcategories[product.subcategory] = [];
+
+      if (!grouped[categoryKey].subcategories[product.subcategory]) {
+        grouped[categoryKey].subcategories[product.subcategory] = [];
       }
-      grouped[product.category].subcategories[product.subcategory].push(
-        product
-      );
+      grouped[categoryKey].subcategories[product.subcategory].push({
+        ...product,
+        subcategoryId: product.subcategoryId,
+      });
     });
 
     return grouped;
   }, []);
 
+  function generateId(name: string): string {
+    return name.toLowerCase().replace(/\s+/g, "-");
+  }
+
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      console.log("Fetching products from API...");
       const response = await axios.get<any[]>(
-        "https://hotel-supplies-backend.vercel.app/api/products"
+        "http://localhost:5003/api/products"
       );
-
       console.log("Raw API response:", response.data);
 
       const transformedProducts: Product[] = [];
 
       response.data.forEach((category) => {
-        const categoryTitle =
-          category.categoryTitle || category.category || "Unnamed Category";
-        const categoryImage = category.categoryImage || "";
+        const categoryData = {
+          id:
+            category.id ||
+            category.originalCategoryId ||
+            generateId(category.categoryTitle || category.category),
+          title: category.categoryTitle || category.category,
+          image: category.categoryImage || "",
+        };
 
-        if (!category.subCategories || !Array.isArray(category.subCategories)) {
-          console.warn(`No subcategories found for category ${categoryTitle}`);
-          return;
-        }
-
-        category.subCategories.forEach((subcategory: any) => {
-          const subcategoryName = subcategory.name || "Unnamed Subcategory";
-          const subcategoryId = subcategory.id || "";
-
-          if (!subcategory.products || !Array.isArray(subcategory.products)) {
-            console.warn(
-              `No products found for subcategory ${subcategoryName}`
-            );
-            return;
-          }
-
-          subcategory.products.forEach((product: any) => {
-            const productId = product.id || "";
-            const productName =
-              product.name || product.title || "Unnamed Product";
+        category.subCategories?.forEach((subcategory: any) => {
+          subcategory.products?.forEach((product: any) => {
+            const productId =
+              product.id ||
+              `${categoryData.id}-${subcategory.id}-${Date.now()}`;
 
             transformedProducts.push({
               id: productId,
-              category: categoryTitle,
-              categoryTitle: categoryTitle,
-              categoryImage: categoryImage,
-              subcategory: subcategoryName,
-              subcategoryId: subcategoryId,
-              title: productName,
-              allProducts: Array.isArray(product.allProducts)
-                ? product.allProducts.map((prod: any) => ({
-                    name: prod.name || prod.title || "",
-                    productImageUrl: prod.productImageUrl || "",
-                    productImages: prod.productImages || [],
-                    description: prod.description || "",
-                    price: Number(prod.price) || 0,
-                    orderCount: Number(prod.orderCount) || 0,
-                    totalOrderCount: Number(prod.totalOrderCount) || 0,
-                    availableColors: Array.isArray(prod.availableColors)
-                      ? prod.availableColors
-                      : [],
-                    availableSizes: Array.isArray(prod.availableSizes)
-                      ? prod.availableSizes
-                      : [],
-                  }))
-                : [],
+              productId: productId,
+              category: categoryData.title,
+              categoryTitle: categoryData.title,
+              categoryImage: categoryData.image,
+              subcategory: subcategory.name,
+              subcategoryId: subcategory.id,
+              name: product.name,
+              allProducts:
+                product.allProducts?.map((p: any) => ({
+                  title: p.title || product.name,
+                  productImageUrl: p.productImageUrl || "",
+                  productImages: p.productImages || [],
+                  description: p.description || "",
+                  price: Number(p.price) || 0,
+                  orderCount: Number(p.orderCount) || 0,
+                  totalOrderCount: Number(p.totalOrderCount) || 0,
+                  availableColors: Array.isArray(p.availableColors)
+                    ? p.availableColors
+                    : [],
+                  availableSizes: Array.isArray(p.availableSizes)
+                    ? p.availableSizes
+                    : [],
+                })) || [],
             });
           });
         });
       });
 
-      console.log("Transformed products:", transformedProducts);
+      console.log("Transformed products with IDs:", transformedProducts);
       setProducts(transformedProducts);
       setGroupedProducts(groupProducts(transformedProducts));
     } catch (error) {
@@ -491,78 +504,51 @@ const ProductList: React.FC = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     try {
-      setAlert({
-        message: "Deleting Product...",
-        visible: true,
-        type: "warning",
-      });
-
-      const productToDelete = products.find((product) => product.id === id);
+      const productToDelete = products.find((p) => p.id === id);
       if (!productToDelete) {
-        console.error("❌ Product not found");
-        setAlert({
-          message: "Product not found",
-          visible: true,
-          type: "error",
-        });
+        console.error("Product not found");
         return;
       }
 
-      const deleteUrl = `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+      const deleteUrl = `http://localhost:5003/api/products/${encodeURIComponent(
         productToDelete.category
       )}/subcategory/${encodeURIComponent(
-        productToDelete.subcategory
+        productToDelete.subcategoryId
       )}/product/${encodeURIComponent(id)}`;
 
-      console.log("🔗 Deleting product at:", deleteUrl);
+      console.log("Deleting product at:", deleteUrl);
+      await axios.delete(deleteUrl);
 
-      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+      setProducts((prev) => prev.filter((p) => p.id !== id));
       setGroupedProducts((prev) => {
         const newGrouped = { ...prev };
-        const subcategoryProducts =
-          newGrouped[productToDelete.category]?.subcategories[
-            productToDelete.subcategory
-          ];
-        if (subcategoryProducts) {
-          newGrouped[productToDelete.category].subcategories[
-            productToDelete.subcategory
-          ] = subcategoryProducts.filter((p) => p.id !== id);
+        const categoryKey = productToDelete.category.toLowerCase();
+        if (
+          newGrouped[categoryKey]?.subcategories[productToDelete.subcategory]
+        ) {
+          newGrouped[categoryKey].subcategories[productToDelete.subcategory] =
+            newGrouped[categoryKey].subcategories[
+              productToDelete.subcategory
+            ].filter((p) => p.id !== id);
         }
         return newGrouped;
       });
 
-      const response = await axios.delete(deleteUrl);
-
-      console.log("✅ Response:", response.data);
-
-      if (response.status !== 200) {
-        throw new Error("Failed to delete product");
-      }
-
       setAlert({
-        message: "Product Deleted Successfully",
+        message: "Product deleted successfully",
         visible: true,
         type: "success",
       });
-
-      setTimeout(() => {
-        fetchProducts();
-      }, 1000);
     } catch (error: any) {
-      console.error(
-        "❌ Error deleting product:",
-        error.response?.data || error
-      );
-
-      fetchProducts();
-
+      console.error("Error deleting product:", error);
       setAlert({
         message: error.response?.data?.message || "Failed to delete product",
         visible: true,
         type: "error",
       });
+      await fetchProducts();
     }
   };
 
@@ -576,12 +562,31 @@ const ProductList: React.FC = () => {
           visible: true,
           type: "warning",
         });
+
+        const formattedSelectedIds = selectedIds.map((id) => formatId(id));
+
+        await axios.request({
+          method: "DELETE",
+          url: "http://localhost:5003/api/bulk",
+          data: { ids: formattedSelectedIds, type },
+        });
       } else if (isSubcategorySelectMode) {
         type = "subcategory";
         setAlert({
           message: "Deleting Subcategories...",
           visible: true,
           type: "warning",
+        });
+
+        const formattedIds = selectedIds.map((id) => {
+          const parts = id.split("::");
+          return parts[1];
+        });
+
+        await axios.request({
+          method: "DELETE",
+          url: "http://localhost:5003/api/bulk",
+          data: { ids: formattedIds, type, category: selectedCategory },
         });
       } else if (isProductSelectMode) {
         type = "product";
@@ -590,13 +595,13 @@ const ProductList: React.FC = () => {
           visible: true,
           type: "warning",
         });
-      }
 
-      await axios.request({
-        method: "DELETE",
-        url: "https://hotel-supplies-backend.vercel.app/api/products/bulk",
-        data: { ids: selectedIds, type },
-      });
+        await axios.request({
+          method: "DELETE",
+          url: "http://localhost:5003/api/bulk",
+          data: { ids: selectedIds, type },
+        });
+      }
 
       setSelectedIds([]);
       setIsCategorySelectMode(false);
@@ -611,6 +616,11 @@ const ProductList: React.FC = () => {
       });
     } catch (error) {
       console.error("Error deleting products:", error);
+      setAlert({
+        message: "Failed to delete items. Please try again.",
+        visible: true,
+        type: "error",
+      });
     }
   };
 
@@ -621,78 +631,190 @@ const ProductList: React.FC = () => {
     }));
   };
 
-  function formatString(str: string) {
-    if (!str || typeof str !== "string") {
-      console.error("Invalid input to formatString:", str);
-      throw new Error("Invalid input: Input must be a non-empty string.");
-    }
-    return str
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-  }
-
   const handleEdit = (
     entity: Product | Category,
     entityType: EditEntityType
   ) => {
-    if (entityType === "category" || entityType === "subcategory") {
+    if (entityType === "category") {
+      const categoryData = groupedProducts[entity.category.toLowerCase()];
+
       setSelectedProduct({
-        id: entity.id || "",
-        category: entity.categoryTitle
-          ? formatString(entity.categoryTitle)
-          : entity.category,
+        id: categoryData?.id || entity.category.toLowerCase(),
+        category: entity.category,
         categoryTitle: entity.categoryTitle || entity.category,
-        categoryImage: entity.categoryImage || "",
-        subcategory: entity.subcategory || "",
-        subcategoryId: entity.subcategoryId || "",
-        title: entity.title || "",
+        categoryImage: categoryData?.categoryImage || "",
+        subcategory: "",
+        subcategoryId: "",
+        name: "",
+        productId: "",
+        allProducts: [],
+      });
+    } else if (entityType === "subcategory") {
+      const subcategoryProducts =
+        groupedProducts[selectedCategory || ""]?.subcategories[
+          entity.subcategory
+        ];
+      const subcategoryId = subcategoryProducts?.[0]?.subcategoryId || "";
+
+      setSelectedProduct({
+        id: "",
+        category: selectedCategory || "",
+        subcategory: entity.subcategory,
+        subcategoryId: subcategoryId,
+        name: "",
+        productId: "",
         allProducts: [],
       });
     } else {
-      setSelectedProduct(entity as Product);
+      const product = entity as Product;
+
+      if (!product.category || !product.subcategoryId || !product.id) {
+        console.error("Missing required IDs for product edit");
+        return;
+      }
+      setSelectedProduct(product);
+      setEditEntityType("product");
+      onOpen();
     }
     setEditEntityType(entityType);
     onOpen();
   };
 
-  const handleSave = async () => {
-    if (selectedProduct) {
-      try {
-        if (editEntityType === "category") {
-          await axios.put(
-            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
-              selectedProduct.category
-            )}`,
-            {
-              categoryTitle: selectedProduct.categoryTitle,
-              categoryImage: selectedProduct.categoryImage,
-            }
-          );
-        } else if (editEntityType === "product") {
-          const productToUpdate = products.find(
-            (product) => product.id === selectedProduct.id
-          );
-          if (!productToUpdate) {
-            console.error("Product not found");
-            return;
-          }
+  const formatId = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]/g, "")
+      .replace(/-+/g, "-")
+      .trim();
+  };
 
-          await axios.put(
-            `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
-              productToUpdate.category
-            )}/subcategory/${encodeURIComponent(
-              productToUpdate.subcategory
-            )}/product/${encodeURIComponent(selectedProduct.id)}`,
-            selectedProduct
-          );
+  const handleSave = async () => {
+    if (!selectedProduct || !editEntityType) return;
+
+    try {
+      if (editEntityType === "product") {
+        const categoryData =
+          groupedProducts[selectedProduct.category.toLowerCase()];
+        if (!categoryData) {
+          throw new Error("Category data not found");
         }
 
-        fetchProducts();
-        onOpenChange();
-      } catch (error) {
-        console.error("Error updating entity:", error);
+        const subcategoryData = Object.entries(categoryData.subcategories).find(
+          ([name]) => name === selectedProduct.subcategory
+        );
+
+        if (!subcategoryData) {
+          throw new Error("Subcategory data not found");
+        }
+
+        const [_, products] = subcategoryData;
+        const subcategoryId = products[0]?.subcategoryId;
+
+        if (10 < 0) {
+          console.log(_);
+        }
+
+        if (!subcategoryId) {
+          throw new Error("Subcategory ID not found");
+        }
+
+        const newProductId = selectedProduct.name
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-");
+
+        const updateData = {
+          name: selectedProduct.name,
+          allProducts: selectedProduct.allProducts.map((prod) => ({
+            ...prod,
+            name: selectedProduct.name,
+          })),
+        };
+
+        const productIdChanged = newProductId !== selectedProduct.productId;
+
+        const response = await axios.put(
+          `http://localhost:5003/api/products/${encodeURIComponent(
+            categoryData.id
+          )}/subcategories/${encodeURIComponent(subcategoryId)}/products/${
+            productIdChanged ? selectedProduct.productId : newProductId
+          }`,
+          {
+            ...updateData,
+            newId: productIdChanged ? newProductId : undefined,
+          }
+        );
+
+        console.log("Product update response:", response.data);
+        setAlert({
+          message: "Product updated successfully!",
+          visible: true,
+          type: "success",
+        });
+
+        if (productIdChanged) {
+          await fetchProducts();
+        }
+      } else if (editEntityType === "category") {
+        const updateData = {
+          categoryTitle: selectedProduct.categoryTitle,
+          categoryImage: selectedProduct.categoryImage,
+        };
+
+        await axios.put(
+          `http://localhost:5003/api/products/categories/${selectedProduct.id}`,
+          updateData
+        );
+
+        setAlert({
+          message: "Category updated successfully!",
+          visible: true,
+          type: "success",
+        });
+      } else if (editEntityType === "subcategory") {
+        if (!selectedCategory || !selectedProduct.subcategoryId) {
+          throw new Error("Missing category or subcategory ID");
+        }
+
+        const categoryData = groupedProducts[selectedCategory];
+        if (!categoryData) {
+          throw new Error("Category data not found");
+        }
+        const actualCategoryId = formatId(categoryData.id);
+
+        const response = await axios.put(
+          `http://localhost:5003/api/subcategories/categories/${encodeURIComponent(
+            actualCategoryId
+          )}/subcategories/${encodeURIComponent(
+            selectedProduct.subcategoryId
+          )}`,
+          {
+            name: selectedProduct.subcategory,
+          }
+        );
+
+        console.log("Subcategory update response:", response.data);
+
+        setAlert({
+          message: "Subcategory updated successfully!",
+          visible: true,
+          type: "success",
+        });
       }
+
+      await fetchProducts();
+      onOpenChange();
+    } catch (error: any) {
+      console.error("Error updating entity:", error);
+      setAlert({
+        message:
+          error.response?.data?.message ||
+          "Failed to update. Please try again.",
+        visible: true,
+        type: "error",
+      });
     }
   };
 
@@ -722,23 +844,22 @@ const ProductList: React.FC = () => {
     if (type === "subcategory") {
       formattedId = `${selectedCategory}::${id}`;
     } else if (type === "product") {
-      formattedId = `${selectedCategory}::${selectedSubcategory}::${id}`;
+      const product = products.find((p) => p.id === id);
+      if (product) {
+        formattedId = `${product.category}::${product.subcategory}::${product.id}`;
+      }
     }
 
-    if (selectedIds.includes(formattedId)) {
-      setSelectedIds(
-        selectedIds.filter((selectedId) => selectedId !== formattedId)
-      );
-    } else {
-      setSelectedIds([...selectedIds, formattedId]);
-    }
+    setSelectedIds((prev) =>
+      prev.includes(formattedId)
+        ? prev.filter((selectedId) => selectedId !== formattedId)
+        : [...prev, formattedId]
+    );
   };
 
-  const handleDeleteCategory = async (category: string) => {
+  const handleDeleteProductCategory = async (category: string) => {
     try {
-      await axios.delete(
-        `https://hotel-supplies-backend.vercel.app/api/products/category/${category}`
-      );
+      await axios.delete(`http://localhost:5003/api/categories/${category}`);
 
       if (selectedCategory === category) {
         setSelectedCategory(null);
@@ -750,13 +871,13 @@ const ProductList: React.FC = () => {
     }
   };
 
-  const handleDeleteSubcategory = async (
+  const handleDeleteProductSubcategory = async (
     category: string,
     subcategory: string
   ) => {
     try {
       await axios.delete(
-        `https://hotel-supplies-backend.vercel.app/api/products/category/${encodeURIComponent(
+        `http://localhost:5003/api/subcategories/${encodeURIComponent(
           category
         )}/subcategory/${encodeURIComponent(subcategory)}`
       );
@@ -771,11 +892,12 @@ const ProductList: React.FC = () => {
   };
 
   const handleCategoryClick = (category: string) => {
-    if (selectedCategory === category) {
+    const lowerCaseCategory = category.toLowerCase();
+    if (selectedCategory === lowerCaseCategory) {
       setSelectedCategory(null);
       setSelectedSubcategory(null);
     } else {
-      setSelectedCategory(category);
+      setSelectedCategory(lowerCaseCategory);
       setSelectedSubcategory(null);
     }
     setActiveSelectionMode(null);
@@ -803,7 +925,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app/api/upload",
+        "http://localhost:5003/api/upload",
         formData,
         {
           headers: {
@@ -858,7 +980,7 @@ const ProductList: React.FC = () => {
       formData.append("file", file);
 
       const response = await axios.post<UploadResponse>(
-        "https://hotel-supplies-backend.vercel.app/api/upload",
+        "http://localhost:5003/api/upload",
         formData,
         {
           headers: {
@@ -876,6 +998,7 @@ const ProductList: React.FC = () => {
         });
       } else if (editEntityType === "product") {
         const updatedAllProducts = [...selectedProduct!.allProducts];
+
         if (imgIndex !== undefined) {
           updatedAllProducts[index!].productImages![imgIndex] = imageUrl;
         } else if (index !== undefined) {
@@ -1004,10 +1127,12 @@ const ProductList: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   {isCategorySelectMode && (
-                    <Checkbox
-                      isSelected={selectedIds.includes(category)}
-                      onChange={() => handleSelect(category, "category")}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        isSelected={selectedIds.includes(category)}
+                        onChange={() => handleSelect(category, "category")}
+                      />
+                    </div>
                   )}
                   {data.categoryImage && (
                     <Image
@@ -1029,11 +1154,12 @@ const ProductList: React.FC = () => {
                       onPress={() =>
                         handleEdit(
                           {
-                            id: "",
+                            id: data.id,
                             category,
                             subcategory: "",
                             subcategoryId: "",
-                            title: "",
+                            name: "",
+                            productId: "",
                             allProducts: [],
                             categoryImage: data.categoryImage,
                           },
@@ -1046,7 +1172,7 @@ const ProductList: React.FC = () => {
 
                     <Popconfirm
                       title="Are you sure you want to delete this category?"
-                      onConfirm={() => handleDeleteCategory(category)}
+                      onConfirm={() => handleDeleteProductCategory(category)}
                       okText="Yes"
                       cancelText="No"
                     >
@@ -1117,14 +1243,16 @@ const ProductList: React.FC = () => {
                 >
                   <div className="flex justify-start items-center gap-2">
                     {isSubcategorySelectMode && (
-                      <Checkbox
-                        isSelected={selectedIds.includes(
-                          `${selectedCategory}::${subcategory}`
-                        )}
-                        onChange={() =>
-                          handleSelect(subcategory, "subcategory")
-                        }
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          isSelected={selectedIds.includes(
+                            `${selectedCategory}::${subcategory}`
+                          )}
+                          onChange={() =>
+                            handleSelect(subcategory, "subcategory")
+                          }
+                        />
+                      </div>
                     )}
                     <p className="text-[14px] font-medium">{subcategory}</p>
                     <div className="flex gap-2 ml-auto">
@@ -1141,7 +1269,8 @@ const ProductList: React.FC = () => {
                               category: selectedCategory,
                               subcategory,
                               subcategoryId: "",
-                              title: "",
+                              name: "",
+                              productId: "",
                               allProducts: [],
                             },
                             "subcategory"
@@ -1153,7 +1282,10 @@ const ProductList: React.FC = () => {
                       <Popconfirm
                         title="Are you sure you want to delete this subcategory?"
                         onConfirm={() =>
-                          handleDeleteSubcategory(selectedCategory, subcategory)
+                          handleDeleteProductSubcategory(
+                            selectedCategory,
+                            subcategory
+                          )
                         }
                         okText="Yes"
                         cancelText="No"
@@ -1232,12 +1364,16 @@ const ProductList: React.FC = () => {
                         onClick={() => toggleProduct(product.id)}
                       >
                         {isProductSelectMode && (
-                          <Checkbox
-                            isSelected={selectedIds.includes(
-                              `${selectedCategory}::${selectedSubcategory}::${product.id}`
-                            )}
-                            onChange={() => handleSelect(product.id, "product")}
-                          />
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              isSelected={selectedIds.includes(
+                                `${product.category}::${product.subcategory}::${product.id}`
+                              )}
+                              onChange={() =>
+                                handleSelect(product.id, "product")
+                              }
+                            />
+                          </div>
                         )}
                         <span className="cursor-pointer flex justify-start items-center gap-x-2">
                           {expandedProducts[product.id] ? (
@@ -1246,7 +1382,7 @@ const ProductList: React.FC = () => {
                             <img className="w-[18px]" src={ArrowRight} alt="" />
                           )}
 
-                          <p className="text-[16px]">{product.title}</p>
+                          <p className="text-[16px]">{product.name}</p>
                         </span>
                         <div className="flex gap-2 ml-auto">
                           <Button
@@ -1262,7 +1398,7 @@ const ProductList: React.FC = () => {
 
                           <Popconfirm
                             title="Are you sure you want to delete this product?"
-                            onConfirm={() => handleDelete(product.id)}
+                            onConfirm={() => handleDeleteProduct(product.id)}
                             okText="Yes"
                             cancelText="No"
                           >
@@ -1287,7 +1423,7 @@ const ProductList: React.FC = () => {
                             >
                               <div className="flex items-center gap-2">
                                 <p className="ml-7 text-[14px] text-black/60">
-                                  {prod.name}
+                                  {prod.title}
                                   {/* Use prod.name instead of prod.title */}
                                 </p>
                               </div>
@@ -1330,7 +1466,7 @@ const ProductList: React.FC = () => {
                                 <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
                                   Price:{" "}
                                   <p className="text-black/60 font-normal">
-                                    ${prod.price}
+                                    ₹{prod.price}
                                   </p>
                                 </p>
                                 <p className="text-[14px] text-black font-medium flex justify-start items-center gap-x-2">
@@ -1625,7 +1761,7 @@ const ProductList: React.FC = () => {
                           formData.append("file", file);
                           axios
                             .post<UploadResponse>(
-                              "https://hotel-supplies-backend.vercel.app/api/upload",
+                              "http://localhost:5003/api/upload",
                               formData,
                               {
                                 headers: {
@@ -1689,7 +1825,7 @@ const ProductList: React.FC = () => {
                                 formData.append("file", file);
                                 axios
                                   .post<UploadResponse>(
-                                    "https://hotel-supplies-backend.vercel.app/api/upload",
+                                    "http://localhost:5003/api/upload",
                                     formData,
                                     {
                                       headers: {
@@ -1806,7 +1942,7 @@ const ProductList: React.FC = () => {
                   Cancel
                 </Button>
                 <Button key="submit" color="primary" onPress={handleAddProduct}>
-                  Add Subcategory
+                  Add Product
                 </Button>
               </div>
             </>
@@ -1995,7 +2131,7 @@ const ProductList: React.FC = () => {
                         formData.append("file", file);
                         axios
                           .post<UploadResponse>(
-                            "https://hotel-supplies-backend.vercel.app/api/upload",
+                            "http://localhost:5003/api/upload",
                             formData,
                             {
                               headers: {
@@ -2056,7 +2192,7 @@ const ProductList: React.FC = () => {
                             formData.append("file", file);
                             axios
                               .post<UploadResponse>(
-                                "https://hotel-supplies-backend.vercel.app/api/upload",
+                                "http://localhost:5003/api/upload",
                                 formData,
                                 {
                                   headers: {
@@ -2127,12 +2263,14 @@ const ProductList: React.FC = () => {
             scrollbarWidth: "none",
           }}
           footer={[
-            <Button key="back" onPress={onOpenChange}>
-              Cancel
-            </Button>,
-            <Button key="submit" onPress={handleSave}>
-              Save
-            </Button>,
+            <div className="flex justify-end items-center gap-x-3">
+              <Button key="back" onPress={onOpenChange}>
+                Cancel
+              </Button>
+              <Button key="submit" color="primary" onPress={handleSave}>
+                Save
+              </Button>
+            </div>,
           ]}
         >
           {selectedProduct && (
@@ -2146,7 +2284,6 @@ const ProductList: React.FC = () => {
                       setSelectedProduct({
                         ...selectedProduct,
                         categoryTitle: e.target.value,
-                        category: formatString(e.target.value),
                       })
                     }
                   />
@@ -2188,27 +2325,34 @@ const ProductList: React.FC = () => {
                   </div>
                 </>
               )}
+
               {editEntityType === "subcategory" && (
-                <Input
-                  label="Sub Category"
-                  value={selectedProduct.subcategory}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setSelectedProduct({
-                      ...selectedProduct,
-                      subcategory: e.target.value,
-                    })
-                  }
-                />
+                <div className="space-y-4">
+                  <Input
+                    label="Subcategory Name"
+                    value={selectedProduct.subcategory}
+                    onChange={(e) =>
+                      setSelectedProduct({
+                        ...selectedProduct,
+                        subcategory: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-sm text-gray-500">
+                    Subcategory ID: {selectedProduct.subcategoryId}
+                  </p>
+                </div>
               )}
+
               {editEntityType === "product" && (
                 <>
                   <Input
                     label="Product Name"
-                    value={selectedProduct.title}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    value={selectedProduct.name}
+                    onChange={(e) =>
                       setSelectedProduct({
                         ...selectedProduct,
-                        title: e.target.value,
+                        name: e.target.value,
                       })
                     }
                   />
@@ -2216,12 +2360,12 @@ const ProductList: React.FC = () => {
                     <div key={index} className="space-y-4">
                       <Input
                         label={`Product ${index + 1} Name`}
-                        value={prod.name}
+                        value={prod.title}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const updatedAllProducts = [
                             ...selectedProduct.allProducts,
                           ];
-                          updatedAllProducts[index].name = e.target.value;
+                          updatedAllProducts[index].title = e.target.value;
                           setSelectedProduct({
                             ...selectedProduct,
                             allProducts: updatedAllProducts,
@@ -2414,28 +2558,12 @@ const ProductList: React.FC = () => {
                       </div>
 
                       <div key={index} className="space-y-4">
-                        <Input
-                          label={`Product ${index + 1} Name`}
-                          value={prod.name}
-                          onChange={(
-                            e: React.ChangeEvent<HTMLInputElement>
-                          ) => {
-                            const updatedAllProducts = [
-                              ...selectedProduct.allProducts,
-                            ];
-                            updatedAllProducts[index].name = e.target.value;
-                            setSelectedProduct({
-                              ...selectedProduct,
-                              allProducts: updatedAllProducts,
-                            });
-                          }}
-                        />
                         <div className="flex gap-4">
                           <div className="flex-shrink-0">
                             {prod.productImageUrl && (
                               <Image
                                 src={prod.productImageUrl}
-                                alt={prod.name}
+                                alt={prod.title}
                                 width={50}
                                 height={50}
                                 className="rounded"
@@ -2483,7 +2611,7 @@ const ProductList: React.FC = () => {
                                 {image && (
                                   <Image
                                     src={image}
-                                    alt={`${prod.name}-image-${imgIndex}`}
+                                    alt={`${prod.title}-image-${imgIndex}`}
                                     width={40}
                                     height={40}
                                     className="rounded"
