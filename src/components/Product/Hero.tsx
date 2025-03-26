@@ -55,7 +55,7 @@ const Hero = () => {
       const paths = location.pathname.split("/").filter((path) => path !== "");
       const [category, subcategory, product, productName] = paths;
 
-      const endpoint = `http://localhost:5003/api/products/${category}/${subcategory}/${product}/${productName}`;
+      const endpoint = `https://hotel-supplies-backend.vercel.app/api/products/${category}/${subcategory}/${product}/${productName}`;
       console.log("Fetching product from:", endpoint);
 
       const response = await axios.get<Product>(endpoint);
