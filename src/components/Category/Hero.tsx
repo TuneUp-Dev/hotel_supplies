@@ -183,6 +183,7 @@ const Hero: React.FC = () => {
     return str
       .replace(/--/g, " / ")
       .replace(/-/g, " ")
+      .replace(/\+/g, "+")
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
@@ -191,21 +192,21 @@ const Hero: React.FC = () => {
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/\//g, "@")
+      .replace(/\+/g, "+")
       .replace(/[^a-z0-9-@]/g, "");
 
   const toPascalCase = (text: string) => {
     return text
       .replace(/--/g, " & ")
       .replace(/-/g, " ")
+      .replace(/\+/g, "+")
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const fetchProducts = useCallback(async () => {
     try {
       console.log("Fetching products from backend...");
-      const response = await axios.get(
-        "https://hotel-supplies-backend.vercel.app/api/categories/"
-      );
+      const response = await axios.get("http://localhost:5003/api/categories/");
       console.log("API Response:", response.data);
 
       if (!Array.isArray(response.data)) {

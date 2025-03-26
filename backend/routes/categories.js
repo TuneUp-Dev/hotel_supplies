@@ -2,6 +2,21 @@ const express = require("express");
 const router = express.Router();
 const db = require("../firebase");
 
+// 🔹 Function to format strings for Firestore document IDs
+function formatString(str) {
+  if (!str || typeof str !== "string") {
+    console.error("Invalid input to formatString:", str);
+    throw new Error("Invalid input: Input must be a non-empty string.");
+  }
+
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/\//g, "@")
+    .replace(/\+/g, "+")
+    .replace(/[^a-z0-9-@]/g, "");
+}
+
 // ✅ Add new category
 router.post("/", async (req, res) => {
   try {
@@ -81,161 +96,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ Add new subcategory
-router.post("/:categoryId/subcategories", async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const { name, products } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: "Subcategory name is required" });
-    }
-
-    const subCategoryId = name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/&/g, "");
-
-    const categoryRef = db.collection("Categories").doc(categoryId);
-
-    const categoryDoc = await categoryRef.get();
-    if (!categoryDoc.exists) {
-      return res.status(404).json({ message: "Category not found" });
-    }
-
-    const subcategoryRef = categoryRef
-      .collection("SubCategories")
-      .doc(subCategoryId);
-
-    const subcategoryData = {
-      id: subCategoryId,
-      name: name,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (products && products.length > 0) {
-      const productsRef = subcategoryRef.collection("Products");
-      const batch = db.batch();
-
-      products.forEach((product) => {
-        const productId = product.name
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/&/g, "");
-
-        const productRef = productsRef.doc(productId);
-
-        batch.set(productRef, {
-          id: productId,
-          name: product.name,
-          allProducts: product.allProducts.map((p) => ({
-            ...p,
-            orderCount: Number(p.orderCount) || 0,
-            totalOrderCount: Number(p.totalOrderCount) || 0,
-            availableColors: Array.isArray(p.availableColors)
-              ? p.availableColors
-              : [],
-            availableSizes: Array.isArray(p.availableSizes)
-              ? p.availableSizes
-              : [],
-            productImages: Array.isArray(p.productImages)
-              ? p.productImages
-              : [],
-          })),
-          createdAt: new Date().toISOString(),
-        });
-      });
-
-      await batch.commit();
-    }
-
-    await subcategoryRef.set(subcategoryData);
-
-    res.status(201).json({
-      message: "Subcategory added successfully",
-      subcategoryId: subCategoryId,
-    });
-  } catch (error) {
-    console.error("Error adding subcategory:", error);
-    res.status(500).json({ message: "Failed to add subcategory" });
-  }
-});
-
-// ✅ Add new product
-router.post(
-  "/:categoryId/subcategories/:subcategoryId/products",
-  async (req, res) => {
-    try {
-      const { categoryId, subcategoryId } = req.params;
-      const { name, allProducts } = req.body;
-
-      if (!name) {
-        return res.status(400).json({ message: "Product name is required" });
-      }
-
-      const categoryRef = db.collection("Categories").doc(categoryId);
-
-      const categoryDoc = await categoryRef.get();
-      if (!categoryDoc.exists) {
-        return res.status(404).json({ message: "Category not found" });
-      }
-
-      const subcategoryRef = categoryRef
-        .collection("SubCategories")
-        .doc(subcategoryId);
-
-      const subcategoryDoc = await subcategoryRef.get();
-      if (!subcategoryDoc.exists) {
-        return res.status(404).json({ message: "Subcategory not found" });
-      }
-
-      const productId = name
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/&/g, "");
-
-      const productData = {
-        id: productId,
-        name: name,
-        createdAt: new Date().toISOString(),
-      };
-
-      if (Array.isArray(allProducts) && allProducts.length > 0) {
-        productData.allProducts = allProducts.map((product) => ({
-          ...product,
-
-          productImageUrl: product.productImageUrl || "",
-          productImages: product.productImages || [],
-          description: product.description || "",
-          price: Number(product.price) || 0,
-          orderCount: Number(product.orderCount) || 0,
-          totalOrderCount: Number(product.totalOrderCount) || 0,
-          availableColors: Array.isArray(product.availableColors)
-            ? product.availableColors
-            : [],
-          availableSizes: Array.isArray(product.availableSizes)
-            ? product.availableSizes
-            : [],
-        }));
-      } else {
-        productData.allProducts = [];
-      }
-
-      const productRef = subcategoryRef.collection("Products").doc(productId);
-      await productRef.set(productData);
-
-      res.status(201).json({
-        message: "Product added successfully",
-        productId: productId,
-        product: productData,
-      });
-    } catch (error) {
-      console.error("Error adding product:", error);
-      res.status(500).json({ message: "Failed to add product" });
-    }
-  }
-);
-
 // ✅ Fetch All Categories data
 router.get("/", async (req, res) => {
   try {
@@ -287,6 +147,204 @@ router.get("/", async (req, res) => {
     res.json(productList);
   } catch (err) {
     console.error("❌ Error fetching products:", err);
+    res.status(500).send("Server error.");
+  }
+});
+
+// ✅ Edit a Category
+router.put("/categories/:id", async (req, res) => {
+  try {
+    console.log("--- START CATEGORY UPDATE ---");
+    console.log("Request received:", {
+      params: req.params,
+      body: req.body,
+      method: req.method,
+      url: req.originalUrl,
+    });
+
+    const { id } = req.params;
+    const { categoryTitle, categoryImage } = req.body;
+
+    console.log("Received parameters:", { id, categoryTitle, categoryImage });
+
+    // Validate required fields
+    if (!categoryTitle || !categoryImage) {
+      console.error("Validation failed - missing required fields");
+      return res.status(400).send("Missing required fields.");
+    }
+
+    const categoryRef = db.collection("Categories").doc(id);
+    console.log("Category reference created:", categoryRef.path);
+
+    const doc = await categoryRef.get();
+    console.log("Document exists check:", doc.exists);
+
+    if (!doc.exists) {
+      console.error("Category not found in database");
+      return res.status(404).send("Category not found.");
+    }
+
+    // Format the new ID based on categoryTitle
+    const newId = formatString(categoryTitle);
+    console.log("Formatted new ID:", newId, "Original ID:", id);
+
+    // If the ID is changing, we need to migrate all data
+    if (id !== newId) {
+      console.log("ID change detected - starting migration process");
+
+      const newCategoryRef = db.collection("Categories").doc(newId);
+      console.log("New category reference:", newCategoryRef.path);
+
+      // Check if new ID already exists
+      const newDoc = await newCategoryRef.get();
+      console.log("New ID existence check:", newDoc.exists);
+
+      if (newDoc.exists) {
+        console.error("Category with new ID already exists");
+        return res.status(400).send("Category with this name already exists.");
+      }
+
+      // Start a batch for the migration
+      const batch = db.batch();
+      console.log("Batch operation created");
+
+      // 1. Create new category document
+      batch.set(newCategoryRef, {
+        id: newId,
+        categoryTitle,
+        categoryImage,
+      });
+      console.log("New category document queued for creation");
+
+      // 2. Copy all subcategories and their products
+      const subcategories = await categoryRef.collection("SubCategories").get();
+      console.log(`Found ${subcategories.size} subcategories to migrate`);
+
+      for (const subcategoryDoc of subcategories.docs) {
+        const subcategoryData = subcategoryDoc.data();
+        const newSubcategoryRef = newCategoryRef
+          .collection("SubCategories")
+          .doc(subcategoryDoc.id);
+
+        console.log(`Migrating subcategory: ${subcategoryDoc.id}`);
+        batch.set(newSubcategoryRef, subcategoryData);
+
+        // Copy all products for this subcategory
+        const products = await subcategoryDoc.ref.collection("Products").get();
+        console.log(
+          `Found ${products.size} products in subcategory ${subcategoryDoc.id}`
+        );
+
+        for (const productDoc of products.docs) {
+          batch.set(
+            newSubcategoryRef.collection("Products").doc(productDoc.id),
+            productDoc.data()
+          );
+        }
+      }
+
+      // Commit the migration first
+      console.log("Committing migration batch...");
+      await batch.commit();
+      console.log("Migration batch committed successfully");
+
+      // 3. Now delete the old category and its subcollections in a separate operation
+      const deleteBatch = db.batch();
+      console.log("Created delete batch operation");
+
+      // Delete all products in each subcategory
+      for (const subcategoryDoc of subcategories.docs) {
+        const products = await subcategoryDoc.ref.collection("Products").get();
+        console.log(
+          `Deleting ${products.size} products from old subcategory ${subcategoryDoc.id}`
+        );
+
+        for (const productDoc of products.docs) {
+          deleteBatch.delete(productDoc.ref);
+        }
+        // Delete the subcategory
+        deleteBatch.delete(subcategoryDoc.ref);
+      }
+
+      // Finally delete the category itself
+      deleteBatch.delete(categoryRef);
+      console.log("Queued deletion of old category document");
+
+      console.log("Committing delete batch...");
+      await deleteBatch.commit();
+      console.log("Delete batch committed successfully");
+    } else {
+      // Just update the existing document if ID isn't changing
+      console.log("No ID change - performing simple update");
+      await categoryRef.update({
+        categoryTitle: categoryTitle,
+        categoryImage: categoryImage,
+      });
+      console.log("Category updated successfully");
+    }
+
+    console.log("--- CATEGORY UPDATE COMPLETED SUCCESSFULLY ---");
+    res.status(200).send("Category updated successfully.");
+  } catch (error) {
+    console.error("--- CATEGORY UPDATE FAILED ---");
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    });
+
+    // More specific error handling
+    if (error.code === 5) {
+      console.error("Firebase: Document not found");
+      res.status(404).send("Document not found in database.");
+    } else if (error.code === 3) {
+      console.error("Firebase: Invalid argument");
+      res.status(400).send("Invalid data format.");
+    } else {
+      console.error("Unexpected server error");
+      res.status(500).send("Server error.");
+    }
+  }
+});
+
+// ✅ Delete a Category
+router.delete("/:category", async (req, res) => {
+  try {
+    const { category } = req.params;
+    const formattedCategoryId = formatString(category);
+    const categoryRef = db.collection("Categories").doc(formattedCategoryId);
+
+    // First delete all subcategories and their products
+    const subcategoriesSnapshot = await categoryRef
+      .collection("SubCategories")
+      .get();
+
+    // Delete all products in each subcategory
+    const subcategoryDeletions = subcategoriesSnapshot.docs.map(
+      async (subcategoryDoc) => {
+        const productsSnapshot = await subcategoryDoc.ref
+          .collection("Products")
+          .get();
+        const productDeletions = productsSnapshot.docs.map((productDoc) =>
+          productDoc.ref.delete()
+        );
+        await Promise.all(productDeletions);
+        return subcategoryDoc.ref.delete();
+      }
+    );
+
+    await Promise.all(subcategoryDeletions);
+
+    // Then delete the category itself
+    await categoryRef.delete();
+
+    res
+      .status(200)
+      .send(
+        "Category and all its subcategories/products deleted successfully."
+      );
+  } catch (err) {
+    console.error("❌ Error deleting category:", err);
     res.status(500).send("Server error.");
   }
 });
