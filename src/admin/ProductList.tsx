@@ -69,19 +69,6 @@ interface CategoryData {
   };
 }
 
-interface SubcategoryProduct {
-  id?: string;
-  name: string;
-  description: string;
-  price: number;
-  orderCount: number;
-  totalOrderCount: number;
-  availableColors: string[];
-  availableSizes: string[];
-  productImageUrl: string;
-  productImages: string[];
-}
-
 interface GroupedProducts {
   [key: string]: CategoryData;
 }
@@ -140,21 +127,6 @@ const ProductList: React.FC = () => {
   const [isSubcategoryModalOpen, setIsSubcategoryModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
-  const [subcategoryProducts, setSubcategoryProducts] = useState<
-    SubcategoryProduct[]
-  >([]);
-  const [newSubcategoryProduct, setNewSubcategoryProduct] =
-    useState<SubcategoryProduct>({
-      name: "",
-      description: "",
-      price: 0,
-      orderCount: 0,
-      totalOrderCount: 0,
-      availableColors: [],
-      availableSizes: [],
-      productImageUrl: "",
-      productImages: [],
-    });
 
   const [tempColor, setTempColor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -375,36 +347,6 @@ const ProductList: React.FC = () => {
     }
   };
 
-  const addProductToSubcategory = () => {
-    if (!newSubcategoryProduct.name.trim()) return;
-
-    setSubcategoryProducts([
-      ...subcategoryProducts,
-      {
-        ...newSubcategoryProduct,
-        id: Math.random().toString(36).substring(2, 9),
-      },
-    ]);
-
-    setNewSubcategoryProduct({
-      name: "",
-      description: "",
-      price: 0,
-      orderCount: 0,
-      totalOrderCount: 0,
-      availableColors: [],
-      availableSizes: [],
-      productImageUrl: "",
-      productImages: [],
-    });
-  };
-
-  const removeProductFromSubcategory = (index: number) => {
-    const updatedProducts = [...subcategoryProducts];
-    updatedProducts.splice(index, 1);
-    setSubcategoryProducts(updatedProducts);
-  };
-
   const groupProducts = useCallback((products: Product[]): GroupedProducts => {
     const grouped: GroupedProducts = {};
 
@@ -512,6 +454,12 @@ const ProductList: React.FC = () => {
 
   const handleDeleteProduct = async (id: string) => {
     try {
+      setAlert({
+        message: "Product deleting...",
+        visible: true,
+        type: "warning",
+      });
+
       const productToDelete = products.find((p) => p.id === id);
       if (!productToDelete) {
         console.error("Product not found");
@@ -700,6 +648,12 @@ const ProductList: React.FC = () => {
 
     try {
       if (editEntityType === "product") {
+        setAlert({
+          message: "Product updating...",
+          visible: true,
+          type: "warning",
+        });
+
         const categoryData =
           groupedProducts[selectedProduct.category.toLowerCase()];
         if (!categoryData) {
@@ -764,6 +718,12 @@ const ProductList: React.FC = () => {
           await fetchProducts();
         }
       } else if (editEntityType === "category") {
+        setAlert({
+          message: "Category updating...",
+          visible: true,
+          type: "warning",
+        });
+
         const updateData = {
           categoryTitle: selectedProduct.categoryTitle,
           categoryImage: selectedProduct.categoryImage,
@@ -780,6 +740,12 @@ const ProductList: React.FC = () => {
           type: "success",
         });
       } else if (editEntityType === "subcategory") {
+        setAlert({
+          message: "Subcategory updating...",
+          visible: true,
+          type: "warning",
+        });
+
         if (!selectedCategory || !selectedProduct.subcategoryId) {
           throw new Error("Missing category or subcategory ID");
         }
@@ -864,6 +830,12 @@ const ProductList: React.FC = () => {
   };
 
   const handleDeleteProductCategory = async (category: string) => {
+    setAlert({
+      message: "Deleting Category...",
+      visible: true,
+      type: "warning",
+    });
+
     try {
       await axios.delete(
         `https://hotel-supplies-backend.vercel.app/api/categories/${category}`
@@ -874,6 +846,11 @@ const ProductList: React.FC = () => {
         setSelectedSubcategory(null);
       }
       fetchProducts();
+      setAlert({
+        message: "Category Deleted Successfully!",
+        visible: true,
+        type: "warning",
+      });
     } catch (error) {
       console.error("Error deleting category:", error);
     }
@@ -883,6 +860,12 @@ const ProductList: React.FC = () => {
     category: string,
     subcategory: string
   ) => {
+    setAlert({
+      message: "Deleting Subcategory...",
+      visible: true,
+      type: "warning",
+    });
+
     try {
       await axios.delete(
         `https://hotel-supplies-backend.vercel.app/api/subcategories/${encodeURIComponent(
@@ -894,6 +877,11 @@ const ProductList: React.FC = () => {
         setSelectedSubcategory(null);
       }
       fetchProducts();
+      setAlert({
+        message: "SubCategory Deleted Successfully!",
+        visible: true,
+        type: "warning",
+      });
     } catch (error) {
       console.error("Error deleting subcategory:", error);
     }
