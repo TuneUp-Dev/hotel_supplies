@@ -291,20 +291,37 @@ router.delete("/:category/subcategory/:subcategory", async (req, res) => {
     const { category, subcategory } = req.params;
     const formattedCategoryId = formatString(category);
     const formattedSubcategoryId = formatString(subcategory);
-    const subcategoryRef = db
-      .collection("Categories")
-      .doc(formattedCategoryId)
+
+    // Get references
+    const categoryRef = db.collection("Categories").doc(formattedCategoryId);
+    const subcategoryRef = categoryRef
       .collection("SubCategories")
       .doc(formattedSubcategoryId);
 
-    // First delete all products in this subcategory
-    const productsSnapshot = await subcategoryRef.collection("Products").get();
-    const productDeletions = productsSnapshot.docs.map((doc) =>
-      doc.ref.delete()
-    );
-    await Promise.all(productDeletions);
+    // Verify the subcategory exists first
+    const subcategoryDoc = await subcategoryRef.get();
+    if (!subcategoryDoc.exists) {
+      return res.status(404).send("Subcategory not found");
+    }
 
-    // Then delete the subcategory itself
+    // Delete all products in batches (more reliable than Promise.all for large collections)
+    const deleteAllProducts = async () => {
+      const productsRef = subcategoryRef.collection("Products");
+      let query = productsRef.limit(400); // Batch size of 400
+
+      while (true) {
+        const snapshot = await query.get();
+        if (snapshot.empty) break;
+
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    };
+
+    await deleteAllProducts();
+
+    // Then delete the subcategory document
     await subcategoryRef.delete();
 
     res
@@ -312,7 +329,7 @@ router.delete("/:category/subcategory/:subcategory", async (req, res) => {
       .send("Subcategory and all its products deleted successfully.");
   } catch (err) {
     console.error("❌ Error deleting subcategory:", err);
-    res.status(500).send("Server error.");
+    res.status(500).send("Server error: " + err.message);
   }
 });
 

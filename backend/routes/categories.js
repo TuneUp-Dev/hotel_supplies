@@ -314,28 +314,43 @@ router.delete("/:category", async (req, res) => {
     const formattedCategoryId = formatString(category);
     const categoryRef = db.collection("Categories").doc(formattedCategoryId);
 
-    // First delete all subcategories and their products
-    const subcategoriesSnapshot = await categoryRef
-      .collection("SubCategories")
-      .get();
+    // First check if the category exists
+    const categoryDoc = await categoryRef.get();
+    if (!categoryDoc.exists) {
+      return res.status(404).send("Category not found");
+    }
 
-    // Delete all products in each subcategory
-    const subcategoryDeletions = subcategoriesSnapshot.docs.map(
-      async (subcategoryDoc) => {
-        const productsSnapshot = await subcategoryDoc.ref
-          .collection("Products")
-          .get();
-        const productDeletions = productsSnapshot.docs.map((productDoc) =>
-          productDoc.ref.delete()
-        );
-        await Promise.all(productDeletions);
-        return subcategoryDoc.ref.delete();
+    // Recursive delete function
+    const deleteCollection = async (collectionRef) => {
+      const snapshot = await collectionRef.get();
+      const batch = db.batch();
+
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      // Delete any remaining documents (if batch was too large)
+      if (snapshot.size > 0) {
+        return deleteCollection(collectionRef);
       }
-    );
+    };
 
-    await Promise.all(subcategoryDeletions);
+    // Delete all subcategories and their products
+    const subcategoriesRef = categoryRef.collection("SubCategories");
+    const subcategoriesSnapshot = await subcategoriesRef.get();
 
-    // Then delete the category itself
+    // Delete all products in each subcategory first
+    for (const subcategoryDoc of subcategoriesSnapshot.docs) {
+      const productsRef = subcategoryDoc.ref.collection("Products");
+      await deleteCollection(productsRef);
+    }
+
+    // Then delete all subcategories
+    await deleteCollection(subcategoriesRef);
+
+    // Finally delete the category itself
     await categoryRef.delete();
 
     res
