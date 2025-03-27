@@ -1416,9 +1416,11 @@ const ProductList: React.FC = () => {
                               className="border-l-[1px] border-black/10 py-3.5"
                             >
                               <div className="flex items-center gap-2">
-                                <p className="ml-7 text-[14px] text-black/60">
+                                <p className="ml-7 text-[14px] text-black/60 flex justify-start items-center gap-x-2">
+                                  <div className="bg-black text-white rounded-full w-5 h-5 flex justify-center items-center font-medium">
+                                    {index + 1}
+                                  </div>{" "}
                                   {prod.title}
-                                  {/* Use prod.name instead of prod.title */}
                                 </p>
                               </div>
                               <div className="flex items-center justify-start gap-5 mt-2">

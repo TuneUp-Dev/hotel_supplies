@@ -118,13 +118,13 @@ const OurProducts = () => {
                 <img
                   src={category.categoryImage}
                   alt={category.categoryTitle}
-                  className="w-full h-full object-cover"
+                  className="w-full h-[270px] object-cover"
                 />
               </div>
 
               {/* Category Details */}
               <div
-                className="absolute bottom-0 w-full min-h-[200px] max-h-[200px] md:min-h-[220px] md:max-h-[220px] lg:min-h-[260px] lg:max-h-[260px] xl:min-h-[320px] xl:max-h-[320px] p-3 md:p-5 lg:p-6 xl:p-8 pt-3 lg:pt-4 xl:pt-6 pb-1 lg:pb-2 xl:pb-4 bg-white rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] xl:rounded-tr-[60px] xl:rounded-br-[60px] xl:rounded-bl-[60px] flex flex-col justify-start items-start gap-y-2 lg:gap-y-3 xl:gap-y-4"
+                className="absolute bottom-0 w-full min-h-[200px] max-h-[200px] md:min-h-[220px] md:max-h-[220px] lg:min-h-[260px] lg:max-h-[260px] xl:min-h-[320px] xl:max-h-[320px] p-3 md:p-5 lg:p-6 xl:p-8 pt-3 lg:pt-4 xl:pt-6 pb-1 lg:pb-2 xl:pb-4 bg-white rounded-tr-[30px] rounded-br-[30px] rounded-bl-[30px] md:rounded-tr-[40px] md:rounded-br-[40px] md:rounded-bl-[40px] lg:rounded-tr-[50px] lg:rounded-br-[50px] lg:rounded-bl-[50px] flex flex-col justify-start items-start gap-y-2 lg:gap-y-3 xl:gap-y-4"
                 style={{
                   zIndex: 1,
                 }}
@@ -155,19 +155,26 @@ const OurProducts = () => {
                   ))}
                 </ul>
 
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[100px] md:w-[130px] lg:w-[150px] xl:w-[176px]">
-                  <Button className="outfit font-normal text-[10px] md:text-[11px] lg:text-[13px] xl:text-[16px] border-[0.9px] bg-white border-black text-black rounded-[44px] w-[80px] md:w-[105px] lg:w-[110px] xl:w-[140px] max-h-[28px] md:min-h-[32px] lg:min-h-[40px] xl:min-h-[50px] overflow-hidden">
-                    View Details
-                  </Button>
+                {category.features.map((feature: string, index: number) => (
+                  <a
+                    href={`/${generateLink(category.categoryTitle)}`}
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[100px] md:w-[130px] lg:w-[150px] xl:w-[176px]">
+                      <Button className="outfit font-normal text-[10px] md:text-[11px] lg:text-[13px] xl:text-[16px] border-[0.9px] bg-white border-black text-black rounded-[44px] w-[80px] md:w-[105px] lg:w-[110px] xl:w-[140px] max-h-[28px] md:min-h-[32px] lg:min-h-[40px] xl:min-h-[50px] overflow-hidden">
+                        View Details
+                      </Button>
 
-                  <span className="bg-[#003F2E] absolute top-0 right-0 md:right-2 lg:right-3 xl:right-1 rounded-full w-[28px] md:w-[32px] lg:w-[40px] xl:w-[50px] h-[28px] md:h-[32px] lg:h-[40px] xl:h-[50px] flex justify-center items-center overflow-visible">
-                    <img
-                      src={ArrowTop}
-                      className="w-[17px] md:w-[20px] lg:w-[30px]"
-                      alt="Arrow"
-                    />
-                  </span>
-                </div>
+                      <span className="bg-[#003F2E] absolute top-0 right-0 md:right-2 lg:right-3 xl:right-1 rounded-full w-[28px] md:w-[32px] lg:w-[40px] xl:w-[50px] h-[28px] md:h-[32px] lg:h-[40px] xl:h-[50px] flex justify-center items-center overflow-visible">
+                        <img
+                          src={ArrowTop}
+                          className="w-[17px] md:w-[20px] lg:w-[30px]"
+                          alt="Arrow"
+                        />
+                      </span>
+                    </div>
+                  </a>
+                ))}
               </div>
             </div>
           </div>
