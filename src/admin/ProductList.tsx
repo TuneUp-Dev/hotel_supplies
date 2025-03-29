@@ -22,7 +22,7 @@ import { ColorPicker, theme, Modal } from "antd";
 interface Product {
   id: string;
   category: string;
-  originalCategoryId?: string;
+  categoryId?: string;
   categoryTitle?: string;
   categoryImage?: string;
   subcategory: string;
@@ -207,7 +207,9 @@ const ProductList: React.FC = () => {
         }
       );
 
-      console.log("Subcategory added:", response.data);
+      if (10 < 0) {
+        console.log(response.data);
+      }
 
       setAlert({
         message: "Subcategory and products added successfully!",
@@ -282,7 +284,9 @@ const ProductList: React.FC = () => {
       const [subcategoryName, products] = subcategoryEntry;
       const subcategoryId = products[0]?.subcategoryId;
 
-      console.log(subcategoryName);
+      if (10 < 0) {
+        console.log(subcategoryName);
+      }
 
       if (!subcategoryId) {
         throw new Error("Subcategory ID not found");
@@ -309,7 +313,9 @@ const ProductList: React.FC = () => {
         }
       );
 
-      console.log("Product added:", response.data);
+      if (10 < 0) {
+        console.log(response.data);
+      }
 
       setAlert({
         message: "Product added successfully!",
@@ -355,7 +361,7 @@ const ProductList: React.FC = () => {
 
       if (!grouped[categoryKey]) {
         grouped[categoryKey] = {
-          id: formatId(product.originalCategoryId || product.category),
+          id: formatId(product.category),
           categoryImage: product.categoryImage || "",
           subcategories: {},
         };
@@ -374,7 +380,7 @@ const ProductList: React.FC = () => {
   }, []);
 
   function generateId(name: string): string {
-    return name.toLowerCase().replace(/\s+/g, "-");
+    return name.toLowerCase().replace(/\s+/g, "-").replace(/&/g, "");
   }
 
   const fetchProducts = useCallback(async () => {
@@ -383,16 +389,16 @@ const ProductList: React.FC = () => {
       const response = await axios.get<any[]>(
         "https://hotel-supplies-backend.vercel.app/api/products"
       );
-      console.log("Raw API response:", response.data);
+
+      if (10 < 0) {
+        console.log(response.data);
+      }
 
       const transformedProducts: Product[] = [];
 
       response.data.forEach((category) => {
         const categoryData = {
-          id:
-            category.id ||
-            category.originalCategoryId ||
-            generateId(category.categoryTitle || category.category),
+          id: category.id || generateId(category.categoryTitle),
           title: category.categoryTitle || category.category,
           image: category.categoryImage || "",
         };
@@ -407,6 +413,7 @@ const ProductList: React.FC = () => {
               id: productId,
               productId: productId,
               category: categoryData.title,
+              categoryId: categoryData.id,
               categoryTitle: categoryData.title,
               categoryImage: categoryData.image,
               subcategory: subcategory.name,
@@ -433,7 +440,6 @@ const ProductList: React.FC = () => {
         });
       });
 
-      console.log("Transformed products with IDs:", transformedProducts);
       setProducts(transformedProducts);
       setGroupedProducts(groupProducts(transformedProducts));
     } catch (error) {
@@ -472,7 +478,6 @@ const ProductList: React.FC = () => {
         productToDelete.subcategoryId
       )}/product/${encodeURIComponent(id)}`;
 
-      console.log("Deleting product at:", deleteUrl);
       await axios.delete(deleteUrl);
 
       setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -593,7 +598,7 @@ const ProductList: React.FC = () => {
       const categoryData = groupedProducts[entity.category.toLowerCase()];
 
       setSelectedProduct({
-        id: categoryData?.id || entity.category.toLowerCase(),
+        id: generateId(entity.category),
         category: entity.category,
         categoryTitle: entity.categoryTitle || entity.category,
         categoryImage: categoryData?.categoryImage || "",
@@ -611,10 +616,10 @@ const ProductList: React.FC = () => {
       const subcategoryId = subcategoryProducts?.[0]?.subcategoryId || "";
 
       setSelectedProduct({
-        id: "",
-        category: selectedCategory || "",
+        id: generateId(entity.category),
+        category: entity.category,
         subcategory: entity.subcategory,
-        subcategoryId: subcategoryId,
+        subcategoryId: generateId(subcategoryId || entity.subcategory),
         name: "",
         productId: "",
         allProducts: [],
@@ -626,7 +631,13 @@ const ProductList: React.FC = () => {
         console.error("Missing required IDs for product edit");
         return;
       }
-      setSelectedProduct(product);
+      setSelectedProduct({
+        ...product,
+        categoryId:
+          product.categoryId ||
+          groupedProducts[product.category.toLowerCase()]?.id ||
+          generateId(product.category),
+      });
       setEditEntityType("product");
       onOpen();
     }
@@ -671,19 +682,9 @@ const ProductList: React.FC = () => {
         const [_, products] = subcategoryData;
         const subcategoryId = products[0]?.subcategoryId;
 
-        if (10 < 0) {
-          console.log(_);
-        }
-
         if (!subcategoryId) {
           throw new Error("Subcategory ID not found");
         }
-
-        const newProductId = selectedProduct.name
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-");
 
         const updateData = {
           name: selectedProduct.name,
@@ -693,30 +694,30 @@ const ProductList: React.FC = () => {
           })),
         };
 
-        const productIdChanged = newProductId !== selectedProduct.productId;
+        const CategoryIdChanged = selectedProduct.categoryId || "";
 
         const response = await axios.put(
           `https://hotel-supplies-backend.vercel.app/api/products/${encodeURIComponent(
-            categoryData.id
-          )}/subcategories/${encodeURIComponent(subcategoryId)}/products/${
-            productIdChanged ? selectedProduct.productId : newProductId
-          }`,
+            CategoryIdChanged
+          )}/subcategories/${encodeURIComponent(
+            subcategoryId
+          )}/products/${encodeURIComponent(selectedProduct.id)}`,
           {
             ...updateData,
-            newId: productIdChanged ? newProductId : undefined,
           }
         );
 
-        console.log("Product update response:", response.data);
+        if (10 < 0) {
+          console.log(response.data, _);
+        }
+
         setAlert({
           message: "Product updated successfully!",
           visible: true,
           type: "success",
         });
 
-        if (productIdChanged) {
-          await fetchProducts();
-        }
+        await fetchProducts();
       } else if (editEntityType === "category") {
         setAlert({
           message: "Category updating...",
@@ -754,7 +755,8 @@ const ProductList: React.FC = () => {
         if (!categoryData) {
           throw new Error("Category data not found");
         }
-        const actualCategoryId = formatId(categoryData.id);
+
+        const actualCategoryId = selectedProduct.id;
 
         const response = await axios.put(
           `https://hotel-supplies-backend.vercel.app/api/subcategories/${encodeURIComponent(
@@ -767,7 +769,9 @@ const ProductList: React.FC = () => {
           }
         );
 
-        console.log("Subcategory update response:", response.data);
+        if (10 < 0) {
+          console.log(response.data);
+        }
 
         setAlert({
           message: "Subcategory updated successfully!",
@@ -1571,23 +1575,28 @@ const ProductList: React.FC = () => {
 
               {newProduct.allProducts.map((product, index) => (
                 <div key={index} className="space-y-4 border p-4 rounded-lg">
-                  <Button
-                    isIconOnly
-                    color="danger"
-                    variant="flat"
-                    size="sm"
-                    className="top-2 right-2"
-                    onPress={() => {
-                      const updatedAllProducts = [...newProduct.allProducts];
-                      updatedAllProducts.splice(index, 1);
-                      setNewProduct({
-                        ...newProduct,
-                        allProducts: updatedAllProducts,
-                      });
-                    }}
-                  >
-                    <img src={Delete} className="w-4" alt="Remove variant" />
-                  </Button>
+                  <div className="flex justify-between items-center">
+                    <div className="w-6 h-6 mt-2 bg-black text-white rounded-full flex justify-center items-center">
+                      {index + 1}
+                    </div>
+                    <Button
+                      isIconOnly
+                      color="danger"
+                      variant="flat"
+                      size="sm"
+                      className="top-2 right-2"
+                      onPress={() => {
+                        const updatedAllProducts = [...newProduct.allProducts];
+                        updatedAllProducts.splice(index, 1);
+                        setNewProduct({
+                          ...newProduct,
+                          allProducts: updatedAllProducts,
+                        });
+                      }}
+                    >
+                      <img src={Delete} className="w-4" alt="Remove variant" />
+                    </Button>
+                  </div>
 
                   <Input
                     label={`Variant ${index + 1} Title`}
@@ -2021,7 +2030,10 @@ const ProductList: React.FC = () => {
 
             {newProduct.allProducts.map((product, index) => (
               <div key={index} className="space-y-4 border p-4 rounded-lg">
-                <div className="flex justify-end items-start">
+                <div className="flex justify-between items-center">
+                  <div className="w-6 h-6 mt-2 bg-black text-white rounded-full flex justify-center items-center">
+                    {index + 1}
+                  </div>
                   <Button
                     isIconOnly
                     size="sm"
@@ -2381,9 +2393,39 @@ const ProductList: React.FC = () => {
                     }
                   />
                   {selectedProduct.allProducts.map((prod, index) => (
-                    <div key={index} className="space-y-4">
+                    <div
+                      key={index}
+                      className="space-y-4 border p-4 pt-10 rounded-lg relative"
+                    >
+                      <div className="w-6 h-6 -mt-5 bg-black text-white rounded-full flex justify-center items-center">
+                        {index + 1}
+                      </div>
+                      <Button
+                        isIconOnly
+                        color="danger"
+                        variant="flat"
+                        size="sm"
+                        className="absolute top-0 right-4"
+                        onPress={() => {
+                          const updatedAllProducts = [
+                            ...selectedProduct.allProducts,
+                          ];
+                          updatedAllProducts.splice(index, 1);
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            allProducts: updatedAllProducts,
+                          });
+                        }}
+                      >
+                        <img
+                          src={Delete}
+                          className="w-4"
+                          alt="Remove variant"
+                        />
+                      </Button>
+
                       <Input
-                        label={`Product ${index + 1} Name`}
+                        label={`Product ${index + 1} Title`}
                         value={prod.title}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const updatedAllProducts = [

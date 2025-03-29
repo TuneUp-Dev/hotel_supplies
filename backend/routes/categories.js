@@ -47,6 +47,7 @@ router.post("/", async (req, res) => {
         .toLowerCase()
         .replace(/\s+/g, "-")
         .replace(/&/g, "");
+
       const subCategoryRef = categoryRef
         .collection("SubCategories")
         .doc(subCategoryId);
@@ -65,6 +66,7 @@ router.post("/", async (req, res) => {
           .toLowerCase()
           .replace(/\s+/g, "-")
           .replace(/&/g, "");
+
         const productRef = subCategoryRef.collection("Products").doc(productId);
 
         const allProducts = Array.isArray(product.allProducts)
