@@ -11,6 +11,7 @@ import {
 import { generate, green, presetPalettes, red } from "@ant-design/colors";
 import { ColorPicker, theme } from "antd";
 import type { ColorPickerProps } from "antd";
+import Delete from "../assets/delete2.svg";
 
 interface FormData {
   categoryTitle: string;
@@ -353,6 +354,24 @@ const ProductForm: React.FC = () => {
                 key={subCategoryIndex}
                 className="space-y-4 p-4 border rounded-lg"
               >
+                <Button
+                  isIconOnly
+                  color="danger"
+                  variant="flat"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onPress={() => {
+                    const newSubCategories = [...formData.subCategories];
+                    newSubCategories.splice(subCategoryIndex, 1);
+                    setFormData({
+                      ...formData,
+                      subCategories: newSubCategories,
+                    });
+                  }}
+                >
+                  <img src={Delete} className="w-4" alt="Remove variant" />
+                </Button>
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
                     Sub Category Name
@@ -379,6 +398,27 @@ const ProductForm: React.FC = () => {
                     key={productIndex}
                     className="space-y-4 p-4 border rounded-lg"
                   >
+                    <Button
+                      isIconOnly
+                      color="danger"
+                      variant="flat"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onPress={() => {
+                        const newSubCategories = [...formData.subCategories];
+                        newSubCategories[subCategoryIndex].products.splice(
+                          productIndex,
+                          1
+                        );
+                        setFormData({
+                          ...formData,
+                          subCategories: newSubCategories,
+                        });
+                      }}
+                    >
+                      <img src={Delete} className="w-4" alt="Remove variant" />
+                    </Button>
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
                         Product Name
@@ -407,6 +447,32 @@ const ProductForm: React.FC = () => {
                         key={allProductIndex}
                         className="space-y-4 p-4 border rounded-lg"
                       >
+                        <Button
+                          isIconOnly
+                          color="danger"
+                          variant="flat"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onPress={() => {
+                            const newSubCategories = [
+                              ...formData.subCategories,
+                            ];
+                            newSubCategories[subCategoryIndex].products[
+                              productIndex
+                            ].allProducts.splice(allProductIndex, 1);
+                            setFormData({
+                              ...formData,
+                              subCategories: newSubCategories,
+                            });
+                          }}
+                        >
+                          <img
+                            src={Delete}
+                            className="w-4"
+                            alt="Remove variant"
+                          />
+                        </Button>
+
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">
                             Product Title
